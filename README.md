@@ -1,4 +1,4 @@
-Honoumi is Simple High-performance RESTful Framework (for JSON).
+## Honoumi is a Simple High-performance RESTful Framework (for JSON).
 
 ## Feature
 
