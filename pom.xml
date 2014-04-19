@@ -37,12 +37,14 @@
 						<phase>deploy</phase>
 						<configuration>
 							<message>Maven artifacts for ${project.version}</message>
+							<outputDirectory>${project.build.directory}/maven-repo</outputDirectory>
 							<branch>refs/heads/master</branch>
 							<noJekyll>true</noJekyll>
-							<outputDirectory>${project.build.directory}/maven-repo</outputDirectory>
 							<repositoryName>maven-repo</repositoryName>
 							<repositoryOwner>be-hase</repositoryOwner>
 							<server>github</server>
+							<path>honoumi-repo</path>
+							<merge>true</merge>
 						</configuration>
 					</execution>
 				</executions>
