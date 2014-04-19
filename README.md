@@ -15,6 +15,28 @@ Honoumi is Simple High-performance RESTful Framework (for JSON).
 	* joda-time
 	* apache commons
 
+## Install
+
+Write your pom.xml.
+
+```xml
+  <repositories>
+    <repository>
+      <id>honoumi-repo</id>
+      <url>https://github.com/be-hase/maven-repo/tree/honoumi</url>
+    </repository>
+  </repositories>
+  
+  <dependencies>
+    <dependency>
+      <groupId>com.be-hase</groupId>
+      <artifactId>honoumi</artifactId>
+      <version>0.0.1</version>
+    </dependency>
+  </dependencies>
+
+```
+
 ## Basic Usage
 
 ### Routing
