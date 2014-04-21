@@ -35,15 +35,10 @@ public class ApplicationProperties {
 	private static String environment;
 
 	static {
-		environment = System.getProperty(ENVIRONMENT);
-		if (StringUtils.isBlank(environment)) {
-			String errorMsg = "Set application.environment";
-			throw new RuntimeException(errorMsg);
-		}
-
 		compositeConfiguration = new CompositeConfiguration();
-		
+		environment = System.getProperty(ENVIRONMENT);
 		String propertiesFiles = System.getProperty(PROPERTIES);
+		
 		if (StringUtils.isNotBlank(propertiesFiles)) {
 			List<String> propertiesFilesList = Arrays.asList(propertiesFiles.split(","));
 			Collections.reverse(propertiesFilesList);
@@ -51,10 +46,12 @@ public class ApplicationProperties {
 			for (String propertiesFile: propertiesFilesList) {
 				if (StringUtils.isNotBlank(propertiesFile)) {
 					PropertiesConfiguration defaultConfiguration = loadConfigurationInUtf8(propertiesFile);
+					
 					Configuration prefixedDefaultConfiguration = null;
-					if (defaultConfiguration != null) {
+					if (StringUtils.isNotBlank(environment) && defaultConfiguration != null) {
 						prefixedDefaultConfiguration = defaultConfiguration.subset("%" + environment);
 					}
+					
 					if (prefixedDefaultConfiguration != null) {
 						compositeConfiguration.addConfiguration(prefixedDefaultConfiguration);
 					}
