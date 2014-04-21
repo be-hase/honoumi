@@ -38,13 +38,11 @@
 						<configuration>
 							<message>Maven artifacts for ${project.version}</message>
 							<outputDirectory>${project.build.directory}/maven-repo</outputDirectory>
-							<branch>refs/heads/master</branch>
+							<branch>refs/heads/honoumi</branch>
 							<noJekyll>true</noJekyll>
 							<repositoryName>maven-repo</repositoryName>
 							<repositoryOwner>be-hase</repositoryOwner>
 							<server>github</server>
-							<path>honoumi-repo</path>
-							<merge>true</merge>
 						</configuration>
 					</execution>
 				</executions>
