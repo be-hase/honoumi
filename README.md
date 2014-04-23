@@ -21,18 +21,19 @@ Honoumi is a High-performance RESTful Micro-framework (for JSON).
 Write your pom.xml.
 
 ```xml
+
   <repositories>
     <repository>
       <id>honoumi-repo</id>
-      <url>https://github.com/be-hase/maven-repo/tree/honoumi</url>
+      <url>https://github.com/be-hase/maven-repo/tree/honoumi-0.0.3</url>
     </repository>
   </repositories>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.be-hase</groupId>
       <artifactId>honoumi</artifactId>
-      <version>0.0.1</version>
+      <version>0.0.3</version>
     </dependency>
   </dependencies>
 
@@ -318,11 +319,18 @@ First argument of Server.create is the name of the server.
 You can also take advantage of this name, to set and port of server, the option of netty to properties.
 
 ```
-mainServer.bind.port=10080 #設定していない場合はデフォルトで10080になる
-mainServer.netty.httpChunkAggregator.maxContentLength=65535
+
+mainServer.bind.port=21014
+mainServer.http.encoding=UTF-16
+mainServer.http.keepAlive=false
+mainServer.http.chunkAggregate=true
+mainServer.http.chunkAggregate.maxContentLength=65535
+mainServer.http.contentCompress=true
 mainServer.netty.options.reuseAddress=true
+mainServer.netty.options.child.reuseAddress=true
 mainServer.netty.options.child.keepAlive=true
 mainServer.netty.options.child.tcpNoDelay=true
+
 ```
 
 In addition, you can also pass a ServerSocketChannelFactory of netty to create method. 
