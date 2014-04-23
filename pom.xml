@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.be-hase</groupId>
 	<artifactId>honoumi</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>honoumi</name>
 	<description>RESTful HTTP server by Netty</description>
 	
@@ -38,7 +38,7 @@
 						<configuration>
 							<message>Maven artifacts for ${project.version}</message>
 							<outputDirectory>${project.build.directory}/maven-repo</outputDirectory>
-							<branch>refs/heads/honoumi</branch>
+							<branch>refs/heads/honoumi-${project.version}</branch>
 							<noJekyll>true</noJekyll>
 							<repositoryName>maven-repo</repositoryName>
 							<repositoryOwner>be-hase</repositoryOwner>

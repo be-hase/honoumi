@@ -20,7 +20,10 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
 
+import com.be_hase.honoumi.domain.ChannelAttachment;
+
 public class Response {
+	//private static Logger logger = LoggerFactory.getLogger(Response.class);
 	
 	private Response(){};
 	
@@ -31,16 +34,19 @@ public class Response {
 			send100Continue(evt);
 		}
 		
-		boolean isKeepAlive = HttpHeaders.isKeepAlive(request);
+		ChannelAttachment channelAttachment = (ChannelAttachment)(evt.getChannel().getAttachment());
+		if (channelAttachment == null) {
+			channelAttachment = new ChannelAttachment();
+		}
+		
+		boolean isKeepAlive = channelAttachment.isKeepAliveSupported() && HttpHeaders.isKeepAlive(request);
 		
 		DefaultHttpResponse res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
 		res.setContent(ChannelBuffers.copiedBuffer(content, CharsetUtil.UTF_8));
 		res.headers().add(CONTENT_TYPE, "application/json");
 		if (isKeepAlive) {
-			res.headers().add(HttpHeaders.Names.CONTENT_LENGTH, res
-					.getContent().readableBytes());
-			res.headers().add(HttpHeaders.Names.CONNECTION,
-					HttpHeaders.Values.KEEP_ALIVE);
+			res.headers().add(HttpHeaders.Names.CONTENT_LENGTH, res.getContent().readableBytes());
+			res.headers().add(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 		if (headers != null) {
 			for (Map.Entry<String, String> e: headers.entrySet()) {
