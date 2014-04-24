@@ -25,7 +25,7 @@ Write your pom.xml.
   <repositories>
     <repository>
       <id>honoumi-repo</id>
-      <url>https://github.com/be-hase/maven-repo/tree/honoumi-0.0.3</url>
+      <url>https://raw.githubusercontent.com/be-hase/maven-repo/honoumi-0.0.3</url>
     </repository>
   </repositories>
 
