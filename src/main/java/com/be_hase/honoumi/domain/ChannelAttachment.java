@@ -1,10 +1,13 @@
 package com.be_hase.honoumi.domain;
 
+import com.be_hase.honoumi.netty.server.Server;
+
 
 public class ChannelAttachment extends BaseDomain {
 	private boolean isKeepAliveSupported = false;
 	
 	private boolean isMonitoring = false;
+	private Server server = null;
 	private long startTime = 0;
 
 	public boolean isKeepAliveSupported() {
@@ -24,5 +27,11 @@ public class ChannelAttachment extends BaseDomain {
 	}
 	public void setMonitoring(boolean isMonitoring) {
 		this.isMonitoring = isMonitoring;
+	}
+	public Server getServer() {
+		return server;
+	}
+	public void setServer(Server server) {
+		this.server = server;
 	}
 }

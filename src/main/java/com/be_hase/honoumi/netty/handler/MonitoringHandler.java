@@ -25,6 +25,7 @@ public class MonitoringHandler extends SimpleChannelUpstreamHandler {
 				channelAttachment = new ChannelAttachment();
 			}
 			channelAttachment.setMonitoring(true);
+			channelAttachment.setServer(server);
 			channelAttachment.setStartTime(System.currentTimeMillis());
 			channel.setAttachment(channelAttachment);
 		}
