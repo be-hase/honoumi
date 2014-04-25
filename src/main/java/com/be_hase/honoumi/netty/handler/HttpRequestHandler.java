@@ -42,7 +42,7 @@ import com.be_hase.honoumi.controller.filter.Filter;
 import com.be_hase.honoumi.controller.filter.WithFilter;
 import com.be_hase.honoumi.domain.ResponseError;
 import com.be_hase.honoumi.exception.ArgumentResolveException;
-import com.be_hase.honoumi.netty.server.Server;
+import com.be_hase.honoumi.netty.server.IServer;
 import com.be_hase.honoumi.routing.Route;
 import com.be_hase.honoumi.util.JacksonUtils;
 import com.google.common.collect.Lists;
@@ -53,7 +53,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = LoggerFactory.getLogger(HttpRequestHandler.class);
 
 	@Inject
-	private Server server;
+	private IServer server;
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {

@@ -2,8 +2,6 @@ package com.be_hase.honoumi.netty.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -15,136 +13,117 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.config.ApplicationProperties;
-import com.be_hase.honoumi.guice.CoreModule;
+import com.be_hase.honoumi.guice.ServerModule;
 import com.be_hase.honoumi.netty.pipeline.ChannelPipelineFactoryImplForHttp;
 import com.be_hase.honoumi.routing.Router;
 import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
-import com.google.inject.Injector;
 import com.google.inject.Stage;
 
-public class Server {
+public class Server extends AbstractServer {
 	private static Logger logger = LoggerFactory.getLogger(Server.class);
-
-	private String serverName;
-	private ServerBootstrap serverBootstrap;
-	private Injector injector;
-	private String charsetStr;
-	private Charset charset;
-	private int port;
-	private Router router;
+	
+	private boolean supportMonitoring;
+	private boolean nowMonitoring = false;
 
 	private Server() {
 	};
 
+	/**
+	 * create server.<br>
+	 * <br>
+	 * @param serverName
+	 * @param router
+	 * @return
+	 */
 	public static Server create(String serverName, Router router) {
 		return create(serverName, router, null, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
 			Executors.newCachedThreadPool()));
 	}
 
+	/**
+	 * create server.<br>
+	 * <br>
+	 * @param serverName
+	 * @param router
+	 * @param modules
+	 * @return
+	 */
 	public static Server create(String serverName, Router router, List<AbstractModule> modules) {
 		return create(serverName, router, modules, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
 			Executors.newCachedThreadPool()));
 	}
 
+	/**
+	 * create server.<br>
+	 * <br>
+	 * @param serverName
+	 * @param router
+	 * @param serverSocketChannelFactory
+	 * @return
+	 */
 	public static Server create(String serverName, Router router, ServerSocketChannelFactory serverSocketChannelFactory) {
 		return create(serverName, router, null, serverSocketChannelFactory);
 	}
 
+	/**
+	 * create server.<br>
+	 * <br>
+	 * @param serverName
+	 * @param router
+	 * @param modules
+	 * @param serverSocketChannelFactory
+	 * @return
+	 */
 	public static Server create(String serverName, Router router, List<AbstractModule> modules,
 			ServerSocketChannelFactory serverSocketChannelFactory) {
 		checkArgument(StringUtils.isNotBlank(serverName), "serverName is blank.");
 		checkArgument(router != null, "router is null");
-
+		
+		// create server
 		Server server = new Server();
 
-		server.serverName = serverName;
-		server.port = ApplicationProperties.getInt(serverName + ".bind.port", 10080);
-		server.charsetStr = ApplicationProperties.get(serverName + ".http.encoding", "UTF-8");
-		server.charset = Charset.forName(server.charsetStr);
-		server.router = router;
-		logger.info("Create server...");
-		logger.info("server-name is {}", server.serverName);
-		logger.info("server-port is {}", server.port);
-		logger.info("server-charset is {}", server.charsetStr);
+		// set server basic info
+		server.setBasicInfos(serverName, router);
+		
+		// set support monitoring
+		server.supportMonitoring = ApplicationProperties.getBoolean(server.serverName + ".monitoring", false);
+		logger.info("{}-supportMonitoring is {}", server.serverName, server.supportMonitoring);
 
-		logger.info("server routes as follows.");
-		server.router.compileRoutes();
-
+		// create injector
 		List<AbstractModule> modulesForCreate = Lists.newArrayList();
-		modulesForCreate.add(new CoreModule(server));
+		modulesForCreate.add(new ServerModule(server));
 		if (modules != null) {
 			for (AbstractModule item: modules) {
-				logger.info("server regists guice module... {}", item.getClass().getSimpleName());
+				logger.info("{} regists guice module... {}", server.serverName, item.getClass().getSimpleName());
 			}
 			modulesForCreate.addAll(modules);
 		}
 		server.injector = Guice.createInjector(Stage.PRODUCTION, modulesForCreate);
 
+		// create and set serverBootstrap
 		server.serverBootstrap = new ServerBootstrap(serverSocketChannelFactory);
-
-		ChannelPipelineFactoryImplForHttp pipeline = server.injector.getInstance(ChannelPipelineFactoryImplForHttp.class);
-		server.serverBootstrap.setPipelineFactory(pipeline);
-
-		List<String> keys = ApplicationProperties.getKeys(serverName + ".netty.options");
-		for (String key: keys) {
-			String prefix = serverName + ".netty.options.";
-			if (key.startsWith(prefix)) {
-				String optionKey = StringUtils.removeStart(key, prefix);
-				String optionVal = ApplicationProperties.get(key);
-				if (optionVal != null) {
-					server.serverBootstrap.setOption(optionKey, optionVal);
-				}
-			}
-		}
-		logger.info("server-serverBootstrap option is {}", server.serverBootstrap.getOptions());
-
+		server.serverBootstrap.setPipelineFactory(server.injector.getInstance(ChannelPipelineFactoryImplForHttp.class));
+		server.setNettyOptions();
+		logger.info("{}-serverBootstrap option is {}", server.serverName, server.serverBootstrap.getOptions());
+		
 		return server;
 	}
-
-	public void start() {
-		serverBootstrap.bind(new InetSocketAddress(port));
-		logger.info("{} has started in {} mode. Port is {}", serverName, ApplicationProperties.getEnvironment(), port);
-
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				logger.info("Starting shutdown...");
-				try {
-					serverBootstrap.shutdown();
-					logger.info("Shutdown successfully.");
-				} catch (Exception e) {
-					logger.error("Shutdown unsafed.", e);
-				}
-			}
-		});
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Server)) {
+			return false;
+		}
+		return serverName.equals(((Server) obj).getServerName());
 	}
-
-	public void stop() {
-		serverBootstrap.shutdown();
-	}
-
+	
 	// getter
-	public String getServerName() {
-		return serverName;
+	public boolean isSupportMonitoring() {
+		return supportMonitoring;
 	}
-	public ServerBootstrap getServerBootstrap() {
-		return serverBootstrap;
-	}
-	public Injector getInjector() {
-		return injector;
-	}
-	public String getCharsetStr() {
-		return charsetStr;
-	}
-	public Charset getCharset() {
-		return charset;
-	}
-	public int getPort() {
-		return port;
-	}
-	public Router getRouter() {
-		return router;
+	public boolean isNowMonitoring() {
+		return nowMonitoring;
 	}
 }
