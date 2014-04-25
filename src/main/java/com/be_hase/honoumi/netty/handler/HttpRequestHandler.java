@@ -51,7 +51,9 @@ import com.google.inject.Inject;
 
 public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = LoggerFactory.getLogger(HttpRequestHandler.class);
-
+	
+	private final String X_HTTP_METHOD_OVERRIDE = "X-Http-Method-Override";
+	
 	@Inject
 	private IServer server;
 	
@@ -67,7 +69,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		try {
 			HttpRequest request = (HttpRequest)evt.getMessage();
 			String uri = request.getUri();
+			String headerHttpMethod = request.headers().get(X_HTTP_METHOD_OVERRIDE);
 			String httpMethod = request.getMethod().getName();
+			if (StringUtils.isNotBlank(headerHttpMethod) && "post".equalsIgnoreCase(httpMethod)) {
+				if ("put".equalsIgnoreCase(headerHttpMethod)) {
+					httpMethod = "PUT";
+				} else if ("delete".equalsIgnoreCase(headerHttpMethod)) {
+					httpMethod = "DELETE";
+				}
+			}
 			logger.debug("Request [{}] '{}'", httpMethod.toUpperCase(), uri);
 
 			Route route = server.getRouter().getRouteFor(httpMethod, uri);

@@ -58,6 +58,36 @@ public interface IServer {
 	public Router getRouter();
 	
 	/**
+	 * isSuppportKeepAlive<br>
+	 * <br>
+	 * @return
+	 */
+	public boolean isSuppportKeepAlive();
+	
+	/**
+	 * isSupportChunkAggregate<br>
+	 * <br>
+	 * @return
+	 */
+	public boolean isSupportChunkAggregate();
+	
+	/**
+	 * getChunkAggregateMaxContentLength<br>
+	 * <br>
+	 * @return
+	 */
+	public int getChunkAggregateMaxContentLength();
+	
+	/**
+	 * isSupportContentCompress<br>
+	 * <br>
+	 * @return
+	 */
+	public boolean isSupportContentCompress();
+	
+	
+	
+	/**
 	 * start server<br>
 	 * <br>
 	 */

@@ -32,6 +32,9 @@ public class ServerTest extends TestCase {
 		Server testServer = Server.create("testServer", router, modules);
 		testServer.start();
 		
+		MonitoringServer monitoringServer = MonitoringServer.create(testServer);
+		monitoringServer.start();
+		
 		assertEquals("testServer", testServer.getServerName());
 		assertEquals(22222, testServer.getPort());
 		assertEquals("UTF-16", testServer.getCharsetStr());

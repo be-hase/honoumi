@@ -20,19 +20,34 @@ public abstract class AbstractServer implements IServer {
 	protected int port;
 	protected String charsetStr;
 	protected Charset charset;
+	private boolean suppportKeepAlive;
+	private boolean supportChunkAggregate;
+	private int chunkAggregateMaxContentLength;
+	private boolean supportContentCompress;
+	
 	protected Router router;
 	protected Injector injector;
 	protected ServerBootstrap serverBootstrap;
 	
-	protected void setBasicInfos(String serverName, Router router) {
+	protected void setBasicInfos(String serverName, int defaultPort, Router router) {
 		// set server basic info
 		this.serverName = serverName;
-		this.port = ApplicationProperties.getInt(this.serverName + ".bind.port", 10080);
+		this.port = ApplicationProperties.getInt(this.serverName + ".bind.port", defaultPort);
 		this.charsetStr = ApplicationProperties.get(this.serverName + ".http.encoding", "UTF-8");
 		this.charset = Charset.forName(this.charsetStr);
+		this.suppportKeepAlive = ApplicationProperties.getBoolean(this.serverName + ".http.keepAlive", false);
+		this.supportChunkAggregate = ApplicationProperties.getBoolean(this.serverName + ".http.chunkAggregate", false);
+		this.chunkAggregateMaxContentLength = ApplicationProperties.getInt(this.serverName + ".http.chunkAggregate.maxContentLength", 65535);
+		this.supportContentCompress = ApplicationProperties.getBoolean(this.serverName + ".http.contentCompress", false);
 		logger.info("Create {} ...", this.serverName);
 		logger.info("{}-port is {}", this.serverName, this.port);
 		logger.info("{}-charset is {}", this.serverName, this.charsetStr);
+		logger.info("{}-suppportKeepAlive is {}", this.serverName, this.suppportKeepAlive);
+		logger.info("{}-supportChunkAggregate is {}", this.serverName, this.supportChunkAggregate);
+		if (this.supportChunkAggregate) {
+			logger.info("{}-chunkAggregateMaxContentLength is {}", this.serverName, this.chunkAggregateMaxContentLength);
+		}
+		logger.info("{}-supportContentCompress is {}", this.serverName, this.supportContentCompress);
 		
 		// compile server router
 		this.router = router;
@@ -97,5 +112,17 @@ public abstract class AbstractServer implements IServer {
 	}
 	public Router getRouter() {
 		return router;
+	}
+	public boolean isSuppportKeepAlive() {
+		return suppportKeepAlive;
+	}
+	public boolean isSupportChunkAggregate() {
+		return supportChunkAggregate;
+	}
+	public int getChunkAggregateMaxContentLength() {
+		return chunkAggregateMaxContentLength;
+	}
+	public boolean isSupportContentCompress() {
+		return supportContentCompress;
 	}
 }

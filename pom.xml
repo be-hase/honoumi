@@ -135,6 +135,12 @@
 			<artifactId>httpclient</artifactId>
 			<version>4.2.3</version>
 		</dependency>
-	</dependencies>
 		
+		<!-- esper for monitoring -->
+		<dependency>
+			<groupId>com.espertech</groupId>
+			<artifactId>esper</artifactId>
+			<version>4.11.0</version>
+		</dependency>
+	</dependencies>
 </project>
