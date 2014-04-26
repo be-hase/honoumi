@@ -10,6 +10,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 
 import com.be_hase.honoumi.netty.handler.HttpKeepAliveHandler;
 import com.be_hase.honoumi.netty.handler.HttpRequestHandler;
+import com.be_hase.honoumi.netty.handler.InitHandler;
 import com.be_hase.honoumi.netty.server.MonitoringServer;
 import com.google.inject.Inject;
 
@@ -17,14 +18,13 @@ public class MonitoringServerChannelPipelineFactory implements ChannelPipelineFa
 	//private static Logger logger = LoggerFactory.getLogger(MonitoringServerChannelPipelineFactory.class);
 
 	@Inject
-	private HttpRequestHandler httpRequestHandler;
-	
-	@Inject
 	private MonitoringServer server;
 	
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
 		
+		pipeline.addLast("initHandler", server.getInjector().getInstance(InitHandler.class));
+
 		// http decoder
 		pipeline.addLast("decoder", new HttpRequestDecoder());
 		
@@ -42,10 +42,10 @@ public class MonitoringServerChannelPipelineFactory implements ChannelPipelineFa
 		}
 		
 		// http keepAlive
-		pipeline.addLast("httpKeepAlive", new HttpKeepAliveHandler(server.isSuppportKeepAlive()));
+		pipeline.addLast("httpKeepAlive", server.getInjector().getInstance(HttpKeepAliveHandler.class));
 		
 		// http request handler
-		pipeline.addLast("httpRequestHandler", httpRequestHandler);
+		pipeline.addLast("httpRequestHandler", server.getInjector().getInstance(HttpRequestHandler.class));
 		
 		return pipeline;
 	}

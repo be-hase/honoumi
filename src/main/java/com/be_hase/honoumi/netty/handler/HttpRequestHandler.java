@@ -1,7 +1,5 @@
 package com.be_hase.honoumi.netty.handler;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
@@ -61,6 +59,8 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
+		logger.debug("called.");
+		
 		if (!(evt.getMessage() instanceof HttpRequest)) {
 			logger.debug("[n/a] received message is illegal.");
 			DefaultHttpResponse res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
@@ -274,7 +274,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					if (!type.isAssignableFrom(Map.class)) {
 						throw new IllegalArgumentException("@PathParams support Map<String, String>.");
 					}
-					Object arg = queryParams.get(pathParams);
+					Object arg = pathParams;
 					args.add(arg);
 					annotationArgs.add(arg);
 				} else if (annotation instanceof QueryParam) {
@@ -312,23 +312,30 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		//monitoring
 		ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
 		if (channelAttachment.isNowMonitoring()) {
+			logger.debug("server is monitoring.");
+			
 			channelAttachment.setUrlPath(request.getUri());
 			channelAttachment.setHttpMethod(httpMethod);
 			channelAttachment.setRequestHeaders(headers);
 			
-			channelAttachment.setEventType(clazz.getSimpleName() + ":" + method.getName());
+			String eventTypeName = clazz.getSimpleName() + ":" + method.getName();
+			channelAttachment.setEventTypeName(eventTypeName);
 			Map<String, Object> event = channelAttachment.getEvent();
 			int index = 0;
 			for (Object arg: annotationArgs) {
 				event.put("annotationArg" + index, arg);
 				index++;
 			}
+			
+			logger.debug("store event to channelAttachment. eventTypeName : {}, event : {}", eventTypeName, event);
+		} else {
+			logger.debug("server is NOT monitoring.");
 		}
 		
 		return args;
 	}
 	
-	private boolean isValidParameterAnnotation(Annotation annotation) {
+	public static boolean isValidParameterAnnotation(Annotation annotation) {
 		if (annotation instanceof Body) return true;
 		if (annotation instanceof FormParam) return true;
 		if (annotation instanceof FormParams) return true;

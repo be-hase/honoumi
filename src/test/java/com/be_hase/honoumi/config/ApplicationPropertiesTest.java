@@ -22,6 +22,8 @@ public class ApplicationPropertiesTest extends TestCase {
 		assertEquals("hoge", ApplicationProperties.get("test.hoge"));
 		assertEquals("bar", ApplicationProperties.get("test.bar"));
 		assertEquals("1", ApplicationProperties.get("test.int"));
+		assertEquals("case", ApplicationProperties.get("test.case"));
+		assertEquals("Case", ApplicationProperties.get("test.Case"));
 		assertNull(ApplicationProperties.get("test.notExist"));
 		assertEquals("default", ApplicationProperties.get("test.notExist", "default"));
 	}

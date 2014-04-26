@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.domain.ChannelAttachment;
+import com.be_hase.honoumi.netty.server.MonitoringServer;
 import com.be_hase.honoumi.util.Utils;
 import com.espertech.esper.client.EPRuntime;
 import com.google.common.collect.Maps;
@@ -77,7 +78,11 @@ public class Response {
 		}
 		
 		if (channelAttachment.isNowMonitoring()) {
+			logger.debug("server is monitoring.");
+			
 			try {
+				EPRuntime epRuntime = channelAttachment.getServer().getEpService().getEPRuntime();
+				
 				Map<String, Object> accessEvent = Maps.newHashMap();
 				accessEvent.put("urlPath", channelAttachment.getUrlPath());
 				accessEvent.put("httpMethod", channelAttachment.getHttpMethod());
@@ -85,16 +90,18 @@ public class Response {
 				accessEvent.put("httpStatusCode", status.getCode());
 				accessEvent.put("time", channelAttachment.getStartTime());
 				accessEvent.put("responseTime", System.currentTimeMillis() - channelAttachment.getStartTime());
+				epRuntime.sendEvent(accessEvent, MonitoringServer.ACCESS_EVENT_TYPE_NAME);
+				logger.debug("sendEvent. eventTypeName : {}, event : {}", MonitoringServer.ACCESS_EVENT_TYPE_NAME, accessEvent);
 				
 				Map<String, Object> event = channelAttachment.getEvent();
 				event.putAll(accessEvent);
-				
-				EPRuntime epRuntime = channelAttachment.getServer().getEpService().getEPRuntime();
-				epRuntime.sendEvent(accessEvent, "access");
-				epRuntime.sendEvent(event, channelAttachment.getEventType());
+				epRuntime.sendEvent(event, channelAttachment.getEventTypeName());
+				logger.debug("sendEvent. eventTypeName : {}, event : {}", channelAttachment.getEventTypeName(), event);
 			} catch (Exception e) {
 				logger.error(Utils.stackTraceToStr(e));
 			}
+		} else {
+			logger.debug("server is NOT monitoring.");
 		}
 	}
 	

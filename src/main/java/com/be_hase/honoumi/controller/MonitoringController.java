@@ -1,15 +1,11 @@
 package com.be_hase.honoumi.controller;
 
-import java.util.Map;
-
 import org.jboss.netty.channel.MessageEvent;
 
 import com.be_hase.honoumi.netty.server.MonitoringServer;
 import com.be_hase.honoumi.netty.server.Server;
 import com.be_hase.honoumi.util.JacksonUtils;
-import com.espertech.esper.client.EventPropertyDescriptor;
 import com.espertech.esper.client.EventType;
-import com.espertech.esper.event.util.EventTypePropertyPair;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
@@ -66,6 +62,11 @@ public class MonitoringController {
 	}
 	
 	public void queryAllServer(
+			MessageEvent evt
+			) {
+	}
+	
+	public void saveQueryAllServer(
 			MessageEvent evt
 			) {
 	}

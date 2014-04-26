@@ -18,7 +18,7 @@ public class ChannelAttachment extends BaseDomain {
 	private String httpMethod = "";
 	private Map<String, String> requestHeaders = new HashMap<String, String>();
 	private Map<String, Object> event = new HashMap<String, Object>();
-	private String eventType = "";
+	private String eventTypeName = "";
 	
 	public static ChannelAttachment getByChannel(Channel channel) {
 		ChannelAttachment channelAttachment = (ChannelAttachment)channel.getAttachment();
@@ -58,11 +58,11 @@ public class ChannelAttachment extends BaseDomain {
 	public void setEvent(Map<String, Object> event) {
 		this.event = event;
 	}
-	public String getEventType() {
-		return eventType;
+	public String getEventTypeName() {
+		return eventTypeName;
 	}
-	public void setEventType(String eventType) {
-		this.eventType = eventType;
+	public void setEventTypeName(String eventTypeName) {
+		this.eventTypeName = eventTypeName;
 	}
 	public String getUrlPath() {
 		return urlPath;

@@ -24,7 +24,7 @@ public class ServerChannelPipelineFactory implements ChannelPipelineFactory {
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
 		
-		pipeline.addLast("initHandler", new InitHandler());
+		pipeline.addLast("initHandler", server.getInjector().getInstance(InitHandler.class));
 		
 		if (server.isSupportMonitoring()) {
 			pipeline.addLast("monitoringHandler", server.getInjector().getInstance(MonitoringHandler.class));
@@ -47,7 +47,7 @@ public class ServerChannelPipelineFactory implements ChannelPipelineFactory {
 		}
 		
 		// http keepAlive
-		pipeline.addLast("httpKeepAlive", new HttpKeepAliveHandler(server.isSuppportKeepAlive()));
+		pipeline.addLast("httpKeepAlive", server.getInjector().getInstance(HttpKeepAliveHandler.class));
 		
 		// http request handler
 		pipeline.addLast("httpRequestHandler", server.getInjector().getInstance(HttpRequestHandler.class));

@@ -83,6 +83,7 @@ public class Server extends AbstractServer {
 	public static Server create(String serverName, Router router, List<AbstractModule> modules,
 			ServerSocketChannelFactory serverSocketChannelFactory) {
 		checkArgument(StringUtils.isNotBlank(serverName), "serverName is blank.");
+		checkArgument(!(serverName.equals(MonitoringServer.SERVER_NAME)), "monitoring must be allowed to use as serverName.");
 		checkArgument(router != null, "router is null");
 		
 		// create server

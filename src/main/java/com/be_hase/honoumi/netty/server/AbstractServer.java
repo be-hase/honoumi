@@ -56,11 +56,12 @@ public abstract class AbstractServer implements IServer {
 	}
 	
 	protected void setNettyOptions() {
-		List<String> keys = ApplicationProperties.getKeys(getServerName() + ".netty.options");
+		String prefix = getServerName() + ".netty.options";
+		List<String> keys = ApplicationProperties.getKeys(prefix);
 		for (String key: keys) {
-			String prefix = getServerName() + ".netty.options.";
-			if (key.startsWith(prefix)) {
-				String optionKey = StringUtils.removeStart(key, prefix);
+			String prefixWithDot = prefix + ".";
+			if (key.startsWith(prefixWithDot)) {
+				String optionKey = StringUtils.removeStart(key, prefixWithDot);
 				String optionVal = ApplicationProperties.get(key);
 				if (optionVal != null) {
 					getServerBootstrap().setOption(optionKey, optionVal);

@@ -1,7 +1,5 @@
 package com.be_hase.honoumi.netty.handler;
 
-import java.util.HashMap;
-
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
@@ -22,14 +20,18 @@ public class MonitoringHandler extends SimpleChannelUpstreamHandler {
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
-		Channel channel = evt.getChannel();
+		logger.debug("called.");
 		
+		Channel channel = evt.getChannel();
 		try {
 			if (server.isNowMonitoring()) {
+				logger.debug("server is monitoring.");
 				ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(channel);
 				channelAttachment.setNowMonitoring(true);
 				channelAttachment.setServer(server);
 				channelAttachment.setStartTime(System.currentTimeMillis());
+			} else {
+				logger.debug("server is NOT monitoring.");
 			}
 		} catch (Exception e) {
 			logger.error(Utils.stackTraceToStr(e));
