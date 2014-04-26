@@ -10,6 +10,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 
 import com.be_hase.honoumi.netty.handler.HttpKeepAliveHandler;
 import com.be_hase.honoumi.netty.handler.HttpRequestHandler;
+import com.be_hase.honoumi.netty.handler.InitHandler;
 import com.be_hase.honoumi.netty.handler.MonitoringHandler;
 import com.be_hase.honoumi.netty.server.Server;
 import com.google.inject.Inject;
@@ -23,7 +24,11 @@ public class ServerChannelPipelineFactory implements ChannelPipelineFactory {
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
 		
-		pipeline.addLast("monitoringHandler", server.getInjector().getInstance(MonitoringHandler.class));
+		pipeline.addLast("initHandler", new InitHandler());
+		
+		if (server.isSupportMonitoring()) {
+			pipeline.addLast("monitoringHandler", server.getInjector().getInstance(MonitoringHandler.class));
+		}
 		
 		// http decoder
 		pipeline.addLast("decoder", new HttpRequestDecoder());

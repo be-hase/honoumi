@@ -4,11 +4,14 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.domain.ChannelAttachment;
+import com.be_hase.honoumi.util.Utils;
 
 public class HttpKeepAliveHandler extends SimpleChannelUpstreamHandler {
-	//private static Logger logger = LoggerFactory.getLogger(HttpKeepAliveHandler.class);
+	private static Logger logger = LoggerFactory.getLogger(HttpKeepAliveHandler.class);
 
 	private final boolean isKeepAliveSupported;
 	
@@ -20,12 +23,12 @@ public class HttpKeepAliveHandler extends SimpleChannelUpstreamHandler {
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
 		Channel channel = evt.getChannel();
 		
-		ChannelAttachment channelAttachment = (ChannelAttachment)channel.getAttachment();
-		if (channelAttachment == null) {
-			channelAttachment = new ChannelAttachment();
+		try {
+			ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(channel);
+			channelAttachment.setKeepAliveSupported(isKeepAliveSupported);
+		} catch (Exception e) {
+			logger.error(Utils.stackTraceToStr(e));
 		}
-		channelAttachment.setKeepAliveSupported(isKeepAliveSupported);
-		channel.setAttachment(channelAttachment);
 		
 		ctx.sendUpstream(evt);
 	}

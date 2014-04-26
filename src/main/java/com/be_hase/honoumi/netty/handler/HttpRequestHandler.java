@@ -40,11 +40,13 @@ import com.be_hase.honoumi.controller.argument.QueryParams;
 import com.be_hase.honoumi.controller.argument.WithArgumentResolver;
 import com.be_hase.honoumi.controller.filter.Filter;
 import com.be_hase.honoumi.controller.filter.WithFilter;
+import com.be_hase.honoumi.domain.ChannelAttachment;
 import com.be_hase.honoumi.domain.ResponseError;
 import com.be_hase.honoumi.exception.ArgumentResolveException;
 import com.be_hase.honoumi.netty.server.IServer;
 import com.be_hase.honoumi.routing.Route;
 import com.be_hase.honoumi.util.JacksonUtils;
+import com.be_hase.honoumi.util.Utils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -113,13 +115,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				}
 			}
 			
-			List<Object> args = parseInvokingMethodArguments(ctx, evt, request, method, httpMethod,
-				route.getPathParametersDecoded(uri));
+			List<Object> args = parseInvokingMethodArguments(ctx, evt, request, httpMethod, clazz, method, route.getPathParametersDecoded(uri));
 
 			logger.debug("Invoke controller method : {}.{}", clazz.getSimpleName(), method.getName());
+			
 			method.invoke(server.getInjector().getInstance(clazz), args.toArray());
 		} catch (ArgumentResolveException e) {
-			logger.warn("[Argument resolve error] : {}", e.getResponse());
+			logger.debug("[Argument resolve error] : {}", e.getResponse());
 			String response;
 			if (e.getResponse() instanceof String) {
 				response = (String)e.getResponse();
@@ -128,7 +130,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			}
 			Response.execute(evt, e.getStatus(), e.getHeaders(), response);
 		} catch (Exception e) {
-			logger.debug(stackTraceToStr(e));
+			logger.error(Utils.stackTraceToStr(e));
 			Response.execute(evt, HttpResponseStatus.INTERNAL_SERVER_ERROR, null,
 				JacksonUtils.toJsonString(createResponseError("Internal Server Error", e.getMessage())));
 		}
@@ -136,7 +138,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		logger.error(stackTraceToStr(e.getCause()));
+		logger.error(Utils.stackTraceToStr(e.getCause()));
 		
 		logger.error("[channel error] exception={}", e);
 		
@@ -160,8 +162,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	private List<Object> parseInvokingMethodArguments(ChannelHandlerContext ctx, MessageEvent evt, HttpRequest request,
-			Method method, String httpMethod, Map<String, String> pathParams) throws ArgumentResolveException {
+			String httpMethod, Class<?> clazz, Method method, Map<String, String> pathParams) throws ArgumentResolveException {
 		List<Object> args = Lists.newArrayList();
+		List<Object> annotationArgs = Lists.newArrayList();
 
 		final Class<?>[] paramTypes = method.getParameterTypes();
 		final Annotation[][] paramAnnotations = method.getParameterAnnotations();
@@ -226,51 +229,69 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@Body support String.");
 					}
-					args.add(bodyStr);
+					Object arg = bodyStr;
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof FormParam) {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@FormParam support String.");
 					}
 					String key = ((FormParam)annotation).value();
-					args.add(formParams.get(key));
+					Object arg = formParams.get(key);
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof FormParams) {
 					if (!type.isAssignableFrom(Map.class)) {
 						throw new IllegalArgumentException("@FormParams support Map<String, String>.");
 					}
-					args.add(formParams);
+					Object arg = formParams;
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof Header) {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@Header support String.");
 					}
 					final String key = ((Header)annotation).value();
-					args.add(headers.get(key));
+					Object arg = headers.get(key);
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof Headers) {
 					if (!type.isAssignableFrom(Map.class)) {
 						throw new IllegalArgumentException("@Headers support Map<String, String>.");
 					}
-					args.add(headers);
+					Object arg = headers;
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof PathParam) {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@PathParam support String.");
 					}
 					String key = ((PathParam)annotation).value();
-					args.add(pathParams.get(key));
+					Object arg = pathParams.get(key);
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof PathParams) {
 					if (!type.isAssignableFrom(Map.class)) {
 						throw new IllegalArgumentException("@PathParams support Map<String, String>.");
 					}
-					args.add(pathParams);
+					Object arg = queryParams.get(pathParams);
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof QueryParam) {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@QueryParam support String.");
 					}
 					String key = ((QueryParam)annotation).value();
-					args.add(queryParams.get(key));
+					Object arg = queryParams.get(key);
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else if (annotation instanceof QueryParams) {
 					if (!type.isAssignableFrom(Map.class)) {
 						throw new IllegalArgumentException("@QueryParams support Map<String, String>.");
 					}
-					args.add(queryParams);
+					Object arg = queryParams;
+					args.add(arg);
+					annotationArgs.add(arg);
 				} else {
 					WithArgumentResolver withAnno = annotation.annotationType().getAnnotation(WithArgumentResolver.class);
 					if (withAnno == null) {
@@ -281,11 +302,29 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					if (!resolver.supportedType(type)) {
 						throw new IllegalArgumentException("@" + annotation.annotationType().getSimpleName() + " does not support " + type.getSimpleName() + ".");
 					}
-					args.add(resolver.resolveArgument(ctx, evt));
+					Object arg = resolver.resolveArgument(ctx, evt);
+					args.add(arg);
+					annotationArgs.add(arg);
 				}
 			}
 		}
-
+		
+		//monitoring
+		ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
+		if (channelAttachment.isNowMonitoring()) {
+			channelAttachment.setUrlPath(request.getUri());
+			channelAttachment.setHttpMethod(httpMethod);
+			channelAttachment.setRequestHeaders(headers);
+			
+			channelAttachment.setEventType(clazz.getSimpleName() + ":" + method.getName());
+			Map<String, Object> event = channelAttachment.getEvent();
+			int index = 0;
+			for (Object arg: annotationArgs) {
+				event.put("annotationArg" + index, arg);
+				index++;
+			}
+		}
+		
 		return args;
 	}
 	
@@ -301,12 +340,5 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		if (annotation instanceof QueryParams) return true;
 		if (annotation.annotationType().getAnnotation(WithArgumentResolver.class) != null) return true;
 		return false;
-	}
-	
-	private String stackTraceToStr(Throwable e) {
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
-		e.printStackTrace(pw);
-		return sw.toString();
 	}
 }

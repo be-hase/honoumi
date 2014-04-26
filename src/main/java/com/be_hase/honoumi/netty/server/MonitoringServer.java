@@ -1,5 +1,6 @@
 package com.be_hase.honoumi.netty.server;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -13,11 +14,14 @@ import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.controller.MonitoringController;
 import com.be_hase.honoumi.guice.MonitoringServerModule;
+import com.be_hase.honoumi.routing.Route;
 import com.be_hase.honoumi.routing.Router;
+import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.inject.Guice;
+import com.google.inject.Singleton;
 import com.google.inject.Stage;
 
 public class MonitoringServer extends AbstractServer {
@@ -27,7 +31,7 @@ public class MonitoringServer extends AbstractServer {
 	
 	private static MonitoringServer monitoringServer;
 	
-	private Map<String, Server> servers;
+	private Map<String, Server> monitoredServers;
 	
 	/**
 	 * create server<br>
@@ -81,15 +85,24 @@ public class MonitoringServer extends AbstractServer {
 			
 			// monitoring router
 			Router router = new Router();
-			router.GET().route("/monitor/statuses").with(MonitoringController.class, "statuses");
-			router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatuses");
+			router.GET().route("/monitor/statuses").with(MonitoringController.class, "statusesAllServer");
+			router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatusesAllServer");
 			router.GET().route("/monitor/{serverName}/status").with(MonitoringController.class, "status");
 			router.PUT().route("/monitor/{serverName}/status").with(MonitoringController.class, "editStatus");
-			router.GET().route("/monitor/queries").with(MonitoringController.class, "queries");
-			router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueries");
-			router.GET().route("/monitor/query/{queryName}").with(MonitoringController.class, "query");
-			router.POST().route("/monitor/query/{queryName}").with(MonitoringController.class, "saveQuery");
-			router.DELETE().route("/monitor/query/{queryName}").with(MonitoringController.class, "deleteQuery");
+			
+			router.GET().route("/monitor/queries").with(MonitoringController.class, "queriesAllServer");
+			router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
+			
+			router.GET().route("/monitor/{serverName}/queries").with(MonitoringController.class, "queries");
+			router.DELETE().route("/monitor/{serverName}/queries").with(MonitoringController.class, "deleteQueries");
+			
+			router.GET().route("/monitor/query/{queryName}").with(MonitoringController.class, "queryAllServer");
+			router.POST().route("/monitor/query/{queryName}").with(MonitoringController.class, "saveQueryAllServer");
+			router.DELETE().route("/monitor/query/{queryName}").with(MonitoringController.class, "deleteQueryAllServer");
+			
+			router.GET().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "query");
+			router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "saveQuery");
+			router.DELETE().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "deleteQuery");
 			
 			// create server
 			monitoringServer = new MonitoringServer();
@@ -98,12 +111,25 @@ public class MonitoringServer extends AbstractServer {
 			monitoringServer.setBasicInfos(SERVER_NAME, 10081, router);
 			
 			// set monitoring server
-			monitoringServer.servers = Maps.newHashMap();
+			monitoringServer.monitoredServers = Maps.newHashMap();
 			for (Server server: servers) {
 				logger.info("Monitor {}", server.getServerName());
+				
 				server.setSupportMonitoring(true);
-				server.setEpService(EPServiceProviderManager.getDefaultProvider());
-				monitoringServer.servers.put(server.getServerName(), server);
+				
+				EPServiceProvider epService = EPServiceProviderManager.getDefaultProvider();
+				server.setEpService(epService);
+				
+				for (Route route: server.getRouter().getRoutes()) {
+					Map<String, Object> def = Maps.newHashMap();
+					String eventName = route.getControllerClass().getSimpleName() + ":" + route.getControllerMethod().getName();
+					epService.getEPAdministrator().getConfiguration().addEventType(eventName, def);
+				}
+				Map<String, Object> def = Maps.newHashMap();
+				String eventName = "access";
+				epService.getEPAdministrator().getConfiguration().addEventType(eventName, def);
+				
+				monitoringServer.monitoredServers.put(server.getServerName(), server);
 			}
 			
 			// create injector
@@ -129,8 +155,16 @@ public class MonitoringServer extends AbstractServer {
 		}
 	}
 	
+	public Set<String> getMonitoredServerNames() {
+		return monitoredServers.keySet();
+	}
+	
+	public Server getMonitoredServer(String monitoredServerName) {
+		return monitoredServers.get(monitoredServerName);
+	}
+	
 	// getter
-	public Map<String, Server> getServers() {
-		return servers;
+	public Map<String, Server> getMonitoredServers() {
+		return monitoredServers;
 	}
 }

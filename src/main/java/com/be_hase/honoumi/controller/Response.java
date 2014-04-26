@@ -19,11 +19,16 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.domain.ChannelAttachment;
+import com.be_hase.honoumi.util.Utils;
+import com.espertech.esper.client.EPRuntime;
+import com.google.common.collect.Maps;
 
 public class Response {
-	//private static Logger logger = LoggerFactory.getLogger(Response.class);
+	private static Logger logger = LoggerFactory.getLogger(Response.class);
 	
 	private Response(){};
 	
@@ -34,10 +39,7 @@ public class Response {
 			send100Continue(evt);
 		}
 		
-		ChannelAttachment channelAttachment = (ChannelAttachment)(evt.getChannel().getAttachment());
-		if (channelAttachment == null) {
-			channelAttachment = new ChannelAttachment();
-		}
+		ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
 		
 		boolean isKeepAlive = channelAttachment.isKeepAliveSupported() && HttpHeaders.isKeepAlive(request);
 		
@@ -72,6 +74,27 @@ public class Response {
 		ChannelFuture future = evt.getChannel().write(res);
 		if (!isKeepAlive) {
 			future.addListener(ChannelFutureListener.CLOSE);
+		}
+		
+		if (channelAttachment.isNowMonitoring()) {
+			try {
+				Map<String, Object> accessEvent = Maps.newHashMap();
+				accessEvent.put("urlPath", channelAttachment.getUrlPath());
+				accessEvent.put("httpMethod", channelAttachment.getHttpMethod());
+				accessEvent.put("requestHeaders", channelAttachment.getRequestHeaders());
+				accessEvent.put("httpStatusCode", status.getCode());
+				accessEvent.put("time", channelAttachment.getStartTime());
+				accessEvent.put("responseTime", System.currentTimeMillis() - channelAttachment.getStartTime());
+				
+				Map<String, Object> event = channelAttachment.getEvent();
+				event.putAll(accessEvent);
+				
+				EPRuntime epRuntime = channelAttachment.getServer().getEpService().getEPRuntime();
+				epRuntime.sendEvent(accessEvent, "access");
+				epRuntime.sendEvent(event, channelAttachment.getEventType());
+			} catch (Exception e) {
+				logger.error(Utils.stackTraceToStr(e));
+			}
 		}
 	}
 	

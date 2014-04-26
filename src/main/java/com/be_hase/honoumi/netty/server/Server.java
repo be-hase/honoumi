@@ -27,6 +27,7 @@ public class Server extends AbstractServer {
 	
 	private boolean supportMonitoring = false;
 	private boolean nowMonitoring = false;
+	
 	private EPServiceProvider epService;
 	private MonitoringResult monitoringResult;
 
