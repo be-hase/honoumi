@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.domain.ChannelAttachment;
 import com.be_hase.honoumi.netty.server.IServer;
-import com.be_hase.honoumi.netty.server.Server;
 import com.be_hase.honoumi.util.Utils;
 import com.google.inject.Inject;
 
@@ -21,7 +20,7 @@ public class HttpKeepAliveHandler extends SimpleChannelUpstreamHandler {
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
-		logger.debug("called.");
+		logger.debug("HttpKeepAliveHandler.messageReceived called.");
 		
 		Channel channel = evt.getChannel();
 		try {

@@ -7,6 +7,8 @@ import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpContentCompressor;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.netty.handler.HttpKeepAliveHandler;
 import com.be_hase.honoumi.netty.handler.HttpRequestHandler;
@@ -15,12 +17,14 @@ import com.be_hase.honoumi.netty.server.MonitoringServer;
 import com.google.inject.Inject;
 
 public class MonitoringServerChannelPipelineFactory implements ChannelPipelineFactory {
-	//private static Logger logger = LoggerFactory.getLogger(MonitoringServerChannelPipelineFactory.class);
+	private static Logger logger = LoggerFactory.getLogger(MonitoringServerChannelPipelineFactory.class);
 
 	@Inject
 	private MonitoringServer server;
 	
 	public ChannelPipeline getPipeline() throws Exception {
+		logger.debug("called.");
+		
 		ChannelPipeline pipeline = Channels.pipeline();
 		
 		pipeline.addLast("initHandler", server.getInjector().getInstance(InitHandler.class));

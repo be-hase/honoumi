@@ -59,7 +59,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
-		logger.debug("called.");
+		logger.debug("HttpRequestHandler.messageReceived called.");
 		
 		if (!(evt.getMessage() instanceof HttpRequest)) {
 			logger.debug("[n/a] received message is illegal.");
@@ -218,11 +218,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				for (int j = 0; j < paramAnnotations[i].length; j++) {
 					if (isValidParameterAnnotation(paramAnnotations[i][j])) {
 						annotation = paramAnnotations[i][j];
+						continue;
 					}
 				}
 				
 				if (annotation == null) {
-					throw new IllegalArgumentException("There is no valid annotation.");
+					throw new IllegalArgumentException("There is no valid annotation on controller method.");
 				}
 				
 				if (annotation instanceof Body) {
@@ -318,7 +319,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			channelAttachment.setHttpMethod(httpMethod);
 			channelAttachment.setRequestHeaders(headers);
 			
-			String eventTypeName = clazz.getSimpleName() + ":" + method.getName();
+			String eventTypeName = clazz.getSimpleName() + "_" + method.getName();
 			channelAttachment.setEventTypeName(eventTypeName);
 			Map<String, Object> event = channelAttachment.getEvent();
 			int index = 0;

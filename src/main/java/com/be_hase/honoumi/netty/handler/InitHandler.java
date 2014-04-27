@@ -14,7 +14,7 @@ public class InitHandler extends SimpleChannelUpstreamHandler {
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
-		logger.debug("called.");
+		logger.debug("InitHandler.messageReceived called.");
 		
 		Channel channel = evt.getChannel();
 		ChannelAttachment channelAttachment = new ChannelAttachment();

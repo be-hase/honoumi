@@ -96,25 +96,7 @@ public class MonitoringServer extends AbstractServer {
 			}
 			
 			// monitoring router
-			Router router = new Router();
-			router.GET().route("/monitor/statuses").with(MonitoringController.class, "statusesAllServer");
-			router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatusesAllServer");
-			router.GET().route("/monitor/{serverName}/status").with(MonitoringController.class, "status");
-			router.PUT().route("/monitor/{serverName}/status").with(MonitoringController.class, "editStatus");
-			
-			router.GET().route("/monitor/queries").with(MonitoringController.class, "queriesAllServer");
-			router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
-			
-			router.GET().route("/monitor/{serverName}/queries").with(MonitoringController.class, "queries");
-			router.DELETE().route("/monitor/{serverName}/queries").with(MonitoringController.class, "deleteQueries");
-			
-			router.GET().route("/monitor/query/{queryName}").with(MonitoringController.class, "queryAllServer");
-			router.POST().route("/monitor/query/{queryName}").with(MonitoringController.class, "saveQueryAllServer");
-			router.DELETE().route("/monitor/query/{queryName}").with(MonitoringController.class, "deleteQueryAllServer");
-			
-			router.GET().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "query");
-			router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "saveQuery");
-			router.DELETE().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "deleteQuery");
+			Router router = createMonitoringRouter();
 			
 			// create server
 			monitoringServer = new MonitoringServer();
@@ -122,90 +104,8 @@ public class MonitoringServer extends AbstractServer {
 			// set server basic info
 			monitoringServer.setBasicInfos(SERVER_NAME, 10081, router);
 			
-			// set monitoring server
-			monitoringServer.monitoredServers = Maps.newHashMap();
-			for (Server server: servers) {
-				logger.info("Monitor {}", server.getServerName());
-				
-				monitoringServer.monitoredServers.put(server.getServerName(), server);
-				
-				EPServiceProvider epService = EPServiceProviderManager.getDefaultProvider();
-				
-				Map<String, Object> accessDef = Maps.newHashMap();
-				accessDef.put("urlPath", String.class);
-				accessDef.put("httpMethod", String.class);
-				accessDef.put("requestHeaders", Map.class);
-				accessDef.put("httpStatusCode", int.class);
-				accessDef.put("time", long.class);
-				accessDef.put("responseTime", long.class);
-				epService.getEPAdministrator().getConfiguration().addEventType(ACCESS_EVENT_TYPE_NAME, accessDef);
-				logger.info("addEventType. eventTypeName : {}, def : {}", ACCESS_EVENT_TYPE_NAME, accessDef);
-				
-				for (Route route: server.getRouter().getRoutes()) {
-					Map<String, Object> def = Maps.newHashMap();
-					Method method = route.getControllerMethod();
-					final Class<?>[] paramTypes = method.getParameterTypes();
-					int index = 0;
-					for (Class<?> paramType: paramTypes) {
-						final Annotation[] paramAnnotations = paramType.getAnnotations();
-						for (Annotation paramAnnotation: paramAnnotations) {
-							if (HttpRequestHandler.isValidParameterAnnotation(paramAnnotation)) {
-								def.put("annotationArg" + index, paramType);
-								index++;
-							}
-						}
-					}
-					def.putAll(accessDef);
-					String eventTypeName = route.getControllerClass().getSimpleName() + ":" + method.getName();
-					epService.getEPAdministrator().getConfiguration().addEventType(eventTypeName, def);
-					logger.info("addEventType. eventTypeName : {}, def : {}", eventTypeName, def);
-				}
-				
-				String prefix = SERVER_NAME + "." + server.getServerName() + ".query";
-				Map<String, Map<String, String>> queries = Maps.newHashMap();
-				List<String> keys = ApplicationProperties.getKeys(prefix);
-				for (String key: keys) {
-					String prefixWithDot = prefix + ".";
-					if (key.startsWith(prefixWithDot)) {
-						String cutKey = StringUtils.removeStart(key, prefixWithDot);
-						String[] cutKeyArray = StringUtils.split(cutKey, ".");
-						
-						if (cutKeyArray.length == 2) {
-							String queryName = cutKeyArray[0];
-							String queryOption = cutKeyArray[1];
-							
-							Map<String, String> query = queries.get(queryName);
-							if (query == null) {
-								query = Maps.newHashMap();
-								queries.put(queryName, query);
-							}
-							query.put(queryOption, ApplicationProperties.get(key));
-						}
-					}
-				}
-				for (Entry<String, Map<String, String>> e: queries.entrySet()) {
-					String queryName = e.getKey();
-					Map<String, String> query = e.getValue();
-					
-					String queryStatement = query.get("statement");
-					checkArgument(StringUtils.isNotBlank(queryStatement), queryName + " statement is blank.");
-					
-					String queryStoreCount = query.get("storeCount");
-					if (queryStoreCount == null) {
-						queryStoreCount = "1000";
-					}
-					checkArgument(StringUtils.isNumeric(queryStoreCount), queryName + " storeCount is not numeric.");
-					
-					EPStatement statement = epService.getEPAdministrator().createEPL(queryStatement, queryName);
-					statement.addListener(new MonitoringListener(server, queryName, Integer.parseInt(queryStoreCount)));
-					logger.info("add query. queryName : {}, statement : {}, storeCount: {}", queryName, queryStatement, queryStoreCount);
-				}
-				
-				server.setSupportMonitoring(true);
-				server.setNowMonitoring(true);
-				server.setMonitoringResult(new MonitoringResult());
-				server.setEpService(epService);
-			}
+			// set monitored server
+			setMonitoredServer(servers, monitoringServer);
 			
 			// create injector
 			monitoringServer.injector = Guice.createInjector(Stage.PRODUCTION, new MonitoringServerModule(monitoringServer));
@@ -217,6 +117,133 @@ public class MonitoringServer extends AbstractServer {
 			logger.info("{}-serverBootstrap option is {}", monitoringServer.serverName, monitoringServer.serverBootstrap.getOptions());
 			
 			return monitoringServer;
+		}
+	}
+	
+	private static Router createMonitoringRouter() {
+		Router router = new Router();
+		router.GET().route("/monitor/statuses").with(MonitoringController.class, "statusesAllServer");
+		router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatusesAllServer");
+		router.GET().route("/monitor/{serverName}/status").with(MonitoringController.class, "status");
+		router.PUT().route("/monitor/{serverName}/status").with(MonitoringController.class, "editStatus");
+		
+		router.GET().route("/monitor/queries").with(MonitoringController.class, "queriesAllServer");
+		router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
+		
+		router.GET().route("/monitor/{serverName}/queries").with(MonitoringController.class, "queries");
+		router.DELETE().route("/monitor/{serverName}/queries").with(MonitoringController.class, "deleteQueries");
+		
+		router.GET().route("/monitor/query/{queryName}").with(MonitoringController.class, "queryAllServer");
+		router.POST().route("/monitor/query/{queryName}").with(MonitoringController.class, "saveQueryAllServer");
+		router.DELETE().route("/monitor/query/{queryName}").with(MonitoringController.class, "deleteQueryAllServer");
+		
+		router.GET().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "query");
+		router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "saveQuery");
+		router.DELETE().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "deleteQuery");
+		
+		return router;
+	}
+	
+	private static void setMonitoredServer(Set<Server> servers, MonitoringServer monitoringServer) {
+		monitoringServer.monitoredServers = Maps.newHashMap();
+		for (Server server: servers) {
+			logger.info("Monitor {}", server.getServerName());
+			
+			EPServiceProvider epService = EPServiceProviderManager.getDefaultProvider();
+			
+			server.setSupportMonitoring(true);
+			server.setNowMonitoring(true);
+			server.setMonitoringResult(new MonitoringResult());
+			server.setEpService(epService);
+			
+			addEventTypesFromRouter(server);
+			createEPLAndAddListener(server);
+			
+			monitoringServer.monitoredServers.put(server.getServerName(), server);
+		}
+	}
+	
+	private static void addEventTypesFromRouter(Server server) {
+		EPServiceProvider epService = server.getEpService();
+		
+		Map<String, Object> accessDef = Maps.newHashMap();
+		accessDef.put("urlPath", String.class);
+		accessDef.put("httpMethod", String.class);
+		accessDef.put("requestHeaders", Map.class);
+		accessDef.put("httpStatusCode", int.class);
+		accessDef.put("time", long.class);
+		accessDef.put("responseTime", long.class);
+		epService.getEPAdministrator().getConfiguration().addEventType(ACCESS_EVENT_TYPE_NAME, accessDef);
+		logger.info("addEventType. eventTypeName : {}, def : {}", ACCESS_EVENT_TYPE_NAME, accessDef);
+		
+		for (Route route: server.getRouter().getRoutes()) {
+			Map<String, Object> def = Maps.newHashMap();
+			Method method = route.getControllerMethod();
+			final Class<?>[] paramTypes = method.getParameterTypes();
+			final Annotation[][] paramAnnotations = method.getParameterAnnotations();
+			int index = 0;
+			for (int i = 0; i < paramTypes.length; i++) {
+				Annotation annotation = null;
+				for (int j = 0; j < paramAnnotations[i].length; j++) {
+					if (HttpRequestHandler.isValidParameterAnnotation(paramAnnotations[i][j])) {
+						annotation = paramAnnotations[i][j];
+						continue;
+					}
+				}
+				if (annotation != null) {
+					def.put("annotationArg" + index, paramTypes[i]);
+					index++;
+				}
+			}
+			
+			def.putAll(accessDef);
+			String eventTypeName = route.getControllerClass().getSimpleName() + "_" + method.getName();
+			epService.getEPAdministrator().getConfiguration().addEventType(eventTypeName, def);
+			logger.info("addEventType. eventTypeName : {}, def : {}", eventTypeName, def);
+		}
+	}
+	
+	private static void createEPLAndAddListener(Server server) {
+		EPServiceProvider epService = server.getEpService();
+		
+		String prefix = SERVER_NAME + "." + server.getServerName() + ".query";
+		Map<String, Map<String, String>> queries = Maps.newHashMap();
+		List<String> keys = ApplicationProperties.getKeys(prefix);
+		for (String key: keys) {
+			String prefixWithDot = prefix + ".";
+			if (key.startsWith(prefixWithDot)) {
+				String cutKey = StringUtils.removeStart(key, prefixWithDot);
+				String[] cutKeyArray = StringUtils.split(cutKey, ".");
+				
+				if (cutKeyArray.length == 2) {
+					String queryName = cutKeyArray[0];
+					String queryOption = cutKeyArray[1];
+					
+					Map<String, String> query = queries.get(queryName);
+					if (query == null) {
+						query = Maps.newHashMap();
+						queries.put(queryName, query);
+					}
+					query.put(queryOption, ApplicationProperties.get(key));
+				}
+			}
+		}
+		for (Entry<String, Map<String, String>> e: queries.entrySet()) {
+			String queryName = e.getKey();
+			Map<String, String> query = e.getValue();
+			
+			String queryStatement = query.get("statement");
+			checkArgument(StringUtils.isNotBlank(queryStatement), queryName + " statement is blank.");
+			
+			String queryStoreCount = query.get("storeCount");
+			if (queryStoreCount == null) {
+				queryStoreCount = "1000";
+			}
+			checkArgument(StringUtils.isNumeric(queryStoreCount), queryName + " storeCount is not numeric.");
+			
+			EPStatement statement = epService.getEPAdministrator().createEPL(queryStatement, queryName);
+			statement.addListener(new MonitoringListener(server, queryName, Integer.parseInt(queryStoreCount)));
+			logger.info("add query. queryName : {}, statement : {}, storeCount: {}", queryName, queryStatement, queryStoreCount);
 		}
 	}
 	

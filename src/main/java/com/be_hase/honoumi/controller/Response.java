@@ -5,6 +5,7 @@ import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -93,10 +94,13 @@ public class Response {
 				epRuntime.sendEvent(accessEvent, MonitoringServer.ACCESS_EVENT_TYPE_NAME);
 				logger.debug("sendEvent. eventTypeName : {}, event : {}", MonitoringServer.ACCESS_EVENT_TYPE_NAME, accessEvent);
 				
-				Map<String, Object> event = channelAttachment.getEvent();
-				event.putAll(accessEvent);
-				epRuntime.sendEvent(event, channelAttachment.getEventTypeName());
-				logger.debug("sendEvent. eventTypeName : {}, event : {}", channelAttachment.getEventTypeName(), event);
+				String eventTypeName = channelAttachment.getEventTypeName();
+				if (StringUtils.isNotBlank(eventTypeName)) {
+					Map<String, Object> event = channelAttachment.getEvent();
+					event.putAll(accessEvent);
+					epRuntime.sendEvent(event, eventTypeName);
+					logger.debug("sendEvent. eventTypeName : {}, event : {}", eventTypeName, event);
+				}
 			} catch (Exception e) {
 				logger.error(Utils.stackTraceToStr(e));
 			}

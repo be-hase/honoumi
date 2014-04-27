@@ -13,14 +13,14 @@ import com.be_hase.honoumi.util.Utils;
 import com.google.inject.Inject;
 
 public class MonitoringHandler extends SimpleChannelUpstreamHandler {
-	private static Logger logger = LoggerFactory.getLogger(HttpKeepAliveHandler.class);
+	private static Logger logger = LoggerFactory.getLogger(MonitoringHandler.class);
 	
 	@Inject
 	private Server server;
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
-		logger.debug("called.");
+		logger.debug("MonitoringHandler.messageReceived called.");
 		
 		Channel channel = evt.getChannel();
 		try {
