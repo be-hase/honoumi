@@ -78,8 +78,9 @@ public class Response {
 			future.addListener(ChannelFutureListener.CLOSE);
 		}
 		
+		// if now monitoring, sendEvent to Esper
 		if (channelAttachment.isNowMonitoring()) {
-			logger.debug("server is monitoring.");
+			logger.debug("server is now monitoring.");
 			
 			try {
 				EPRuntime epRuntime = channelAttachment.getServer().getEpService().getEPRuntime();
@@ -102,10 +103,10 @@ public class Response {
 					logger.debug("sendEvent. eventTypeName : {}, event : {}", eventTypeName, event);
 				}
 			} catch (Exception e) {
-				logger.error(Utils.stackTraceToStr(e));
+				logger.debug(Utils.stackTraceToStr(e));
 			}
 		} else {
-			logger.debug("server is NOT monitoring.");
+			logger.debug("server is NOT now monitoring.");
 		}
 	}
 	

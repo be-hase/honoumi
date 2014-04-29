@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.config.ApplicationProperties;
 import com.be_hase.honoumi.controller.MonitoringController;
-import com.be_hase.honoumi.domain.MonitoringResult;
+import com.be_hase.honoumi.domain.MonitoringResultSet;
 import com.be_hase.honoumi.guice.MonitoringServerModule;
 import com.be_hase.honoumi.listener.MonitoringListener;
 import com.be_hase.honoumi.netty.handler.HttpRequestHandler;
@@ -29,6 +29,7 @@ import com.be_hase.honoumi.routing.Router;
 import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.EPStatement;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.inject.Guice;
@@ -40,56 +41,57 @@ public class MonitoringServer extends AbstractServer {
 	
 	public final static String SERVER_NAME = "monitoring";
 	public final static String ACCESS_EVENT_TYPE_NAME = "access";
+	public final static String DEFAULT_STORE_COUNT = "1000";
 	
 	private static MonitoringServer monitoringServer;
 	
 	private Map<String, Server> monitoredServers;
 	
 	/**
-	 * create server<br>
+	 * create server for monitoring<br>
 	 * <br>
-	 * @param server
+	 * @param monitoredServer
 	 * @return
 	 */
-	public static MonitoringServer create(Server server) {
-		Set<Server> servers = Sets.newHashSet();
-		servers.add(server);
-		return create(servers, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
+	public static MonitoringServer create(Server monitoredServer) {
+		Set<Server> monitoredServers = Sets.newHashSet();
+		monitoredServers.add(monitoredServer);
+		return create(monitoredServers, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
+				Executors.newCachedThreadPool()));
+	}
+	
+	/**
+	 * create server for monitoring<br>
+	 * <br>
+	 * @param monitoredServer
+	 * @param serverSocketChannelFactory
+	 * @return
+	 */
+	public static MonitoringServer create(Server monitoredServer, ServerSocketChannelFactory serverSocketChannelFactory) {
+		Set<Server> monitoredServers = Sets.newHashSet();
+		monitoredServers.add(monitoredServer);
+		return create(monitoredServers, serverSocketChannelFactory);
+	}
+	
+	/**
+	 * create server<br>
+	 * <br>
+	 * @param monitoredServers
+	 * @return
+	 */
+	public static MonitoringServer create(Set<Server> monitoredServers) {
+		return create(monitoredServers, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
 				Executors.newCachedThreadPool()));
 	}
 	
 	/**
 	 * create server<br>
 	 * <br>
-	 * @param server
+	 * @param monitoredServers
 	 * @param serverSocketChannelFactory
 	 * @return
 	 */
-	public static MonitoringServer create(Server server, ServerSocketChannelFactory serverSocketChannelFactory) {
-		Set<Server> servers = Sets.newHashSet();
-		servers.add(server);
-		return create(servers, serverSocketChannelFactory);
-	}
-	
-	/**
-	 * create server<br>
-	 * <br>
-	 * @param servers
-	 * @return
-	 */
-	public static MonitoringServer create(Set<Server> servers) {
-		return create(servers, new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
-				Executors.newCachedThreadPool()));
-	}
-	
-	/**
-	 * create server<br>
-	 * <br>
-	 * @param servers
-	 * @param serverSocketChannelFactory
-	 * @return
-	 */
-	public static MonitoringServer create(Set<Server> servers, ServerSocketChannelFactory serverSocketChannelFactory) {
+	public static MonitoringServer create(Set<Server> monitoredServers, ServerSocketChannelFactory serverSocketChannelFactory) {
 		synchronized (LOCK) {
 			if (monitoringServer != null) {
 				return monitoringServer;
@@ -105,7 +107,7 @@ public class MonitoringServer extends AbstractServer {
 			monitoringServer.setBasicInfos(SERVER_NAME, 10081, router);
 			
 			// set monitored server
-			setMonitoredServer(servers, monitoringServer);
+			setMonitoredServer(monitoredServers, monitoringServer);
 			
 			// create injector
 			monitoringServer.injector = Guice.createInjector(Stage.PRODUCTION, new MonitoringServerModule(monitoringServer));
@@ -124,21 +126,21 @@ public class MonitoringServer extends AbstractServer {
 		Router router = new Router();
 		router.GET().route("/monitor/statuses").with(MonitoringController.class, "statusesAllServer");
 		router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatusesAllServer");
+		
 		router.GET().route("/monitor/{serverName}/status").with(MonitoringController.class, "status");
 		router.PUT().route("/monitor/{serverName}/status").with(MonitoringController.class, "editStatus");
 		
 		router.GET().route("/monitor/queries").with(MonitoringController.class, "queriesAllServer");
+		router.PUT().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
 		router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
 		
 		router.GET().route("/monitor/{serverName}/queries").with(MonitoringController.class, "queries");
+		router.PUT().route("/monitor/{serverName}/queries").with(MonitoringController.class, "editQueries");
 		router.DELETE().route("/monitor/{serverName}/queries").with(MonitoringController.class, "deleteQueries");
 		
-		router.GET().route("/monitor/query/{queryName}").with(MonitoringController.class, "queryAllServer");
-		router.POST().route("/monitor/query/{queryName}").with(MonitoringController.class, "saveQueryAllServer");
-		router.DELETE().route("/monitor/query/{queryName}").with(MonitoringController.class, "deleteQueryAllServer");
-		
 		router.GET().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "query");
-		router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "saveQuery");
+		router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "addQuery");
+		router.PUT().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "editQuery");
 		router.DELETE().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "deleteQuery");
 		
 		return router;
@@ -153,7 +155,7 @@ public class MonitoringServer extends AbstractServer {
 			
 			server.setSupportMonitoring(true);
 			server.setNowMonitoring(true);
-			server.setMonitoringResult(new MonitoringResult());
+			server.setMonitoringResult(new MonitoringResultSet());
 			server.setEpService(epService);
 			
 			addEventTypesFromRouter(server);
@@ -182,6 +184,7 @@ public class MonitoringServer extends AbstractServer {
 			final Class<?>[] paramTypes = method.getParameterTypes();
 			final Annotation[][] paramAnnotations = method.getParameterAnnotations();
 			int index = 0;
+			
 			for (int i = 0; i < paramTypes.length; i++) {
 				Annotation annotation = null;
 				for (int j = 0; j < paramAnnotations[i].length; j++) {
@@ -235,15 +238,17 @@ public class MonitoringServer extends AbstractServer {
 			String queryStatement = query.get("statement");
 			checkArgument(StringUtils.isNotBlank(queryStatement), queryName + " statement is blank.");
 			
-			String queryStoreCount = query.get("storeCount");
-			if (queryStoreCount == null) {
-				queryStoreCount = "1000";
+			String queryMaxStoreCount = query.get("maxStoreCount");
+			if (queryMaxStoreCount == null) {
+				queryMaxStoreCount = DEFAULT_STORE_COUNT;
 			}
-			checkArgument(StringUtils.isNumeric(queryStoreCount), queryName + " storeCount is not numeric.");
+			checkArgument(StringUtils.isNumeric(queryMaxStoreCount), queryName + " maxStoreCount is not numeric.");
+			int queryMaxStoreCountInt = Integer.parseInt(queryMaxStoreCount);
+			checkArgument(queryMaxStoreCountInt >= 0, queryName + " maxStoreCount is not numeric.");
 			
 			EPStatement statement = epService.getEPAdministrator().createEPL(queryStatement, queryName);
-			statement.addListener(new MonitoringListener(server, queryName, Integer.parseInt(queryStoreCount)));
-			logger.info("add query. queryName : {}, statement : {}, storeCount: {}", queryName, queryStatement, queryStoreCount);
+			statement.addListener(new MonitoringListener(server, queryName, Integer.parseInt(queryMaxStoreCount)));
+			logger.info("add query. queryName : {}, statement : {}, maxStoreCount: {}", queryName, queryStatement, queryMaxStoreCount);
 		}
 	}
 	
@@ -259,6 +264,12 @@ public class MonitoringServer extends AbstractServer {
 	
 	public Set<String> getMonitoredServerNames() {
 		return monitoredServers.keySet();
+	}
+	
+	public List<Server> getMonitoredServersList() {
+		List<Server> result = Lists.newArrayList();
+		result.addAll(monitoredServers.values());
+		return result;
 	}
 	
 	public Server getMonitoredServer(String monitoredServerName) {

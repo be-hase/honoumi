@@ -13,7 +13,7 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.be_hase.honoumi.domain.MonitoringResult;
+import com.be_hase.honoumi.domain.MonitoringResultSet;
 import com.be_hase.honoumi.guice.ServerModule;
 import com.be_hase.honoumi.routing.Router;
 import com.espertech.esper.client.EPServiceProvider;
@@ -24,12 +24,13 @@ import com.google.inject.Stage;
 
 public class Server extends AbstractServer {
 	private static Logger logger = LoggerFactory.getLogger(Server.class);
+	private static final String SERVER_NAME_REGEX = "^[a-zA-Z0-9_-]*$";
 	
 	private boolean supportMonitoring = false;
 	private boolean nowMonitoring = false;
 	
 	private EPServiceProvider epService;
-	private MonitoringResult monitoringResult;
+	private MonitoringResultSet monitoringResultSet;
 
 	private Server() {
 	};
@@ -83,7 +84,8 @@ public class Server extends AbstractServer {
 	public static Server create(String serverName, Router router, List<AbstractModule> modules,
 			ServerSocketChannelFactory serverSocketChannelFactory) {
 		checkArgument(StringUtils.isNotBlank(serverName), "serverName is blank.");
-		checkArgument(!(serverName.equals(MonitoringServer.SERVER_NAME)), "monitoring must be allowed to use as serverName.");
+		checkArgument(!(serverName.equals(MonitoringServer.SERVER_NAME)), "monitoring does not allow to use as serverName.");
+		checkArgument(serverName.matches(SERVER_NAME_REGEX), "serverName allows only " + SERVER_NAME_REGEX);
 		checkArgument(router != null, "router is null");
 		
 		// create server
@@ -133,11 +135,11 @@ public class Server extends AbstractServer {
 	public void setNowMonitoring(boolean nowMonitoring) {
 		this.nowMonitoring = nowMonitoring;
 	}
-	public MonitoringResult getMonitoringResult() {
-		return monitoringResult;
+	public MonitoringResultSet getMonitoringResultSet() {
+		return monitoringResultSet;
 	}
-	public void setMonitoringResult(MonitoringResult monitoringResult) {
-		this.monitoringResult = monitoringResult;
+	public void setMonitoringResult(MonitoringResultSet monitoringResultSet) {
+		this.monitoringResultSet = monitoringResultSet;
 	}
 	public EPServiceProvider getEpService() {
 		return epService;

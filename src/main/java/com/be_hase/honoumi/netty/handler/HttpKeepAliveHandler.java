@@ -27,7 +27,7 @@ public class HttpKeepAliveHandler extends SimpleChannelUpstreamHandler {
 			ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(channel);
 			channelAttachment.setKeepAliveSupported(server.isSuppportKeepAlive());
 		} catch (Exception e) {
-			logger.error(Utils.stackTraceToStr(e));
+			logger.debug(Utils.stackTraceToStr(e));
 		}
 		
 		ctx.sendUpstream(evt);

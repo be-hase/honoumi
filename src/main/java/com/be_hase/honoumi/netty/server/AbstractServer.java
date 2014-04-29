@@ -11,19 +11,22 @@ import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.config.ApplicationProperties;
 import com.be_hase.honoumi.routing.Router;
+import com.be_hase.honoumi.util.Utils;
 import com.google.inject.Injector;
 
 public abstract class AbstractServer implements IServer {
 	private static Logger logger = LoggerFactory.getLogger(AbstractServer.class);
 	
+	private static final int DEFAULT_MAX_CONTENT_LENGTH = 65535;
+	
 	protected String serverName;
 	protected int port;
 	protected String charsetStr;
 	protected Charset charset;
-	private boolean suppportKeepAlive;
-	private boolean supportChunkAggregate;
-	private int chunkAggregateMaxContentLength;
-	private boolean supportContentCompress;
+	protected boolean suppportKeepAlive;
+	protected boolean supportChunkAggregate;
+	protected int chunkAggregateMaxContentLength;
+	protected boolean supportContentCompress;
 	
 	protected Router router;
 	protected Injector injector;
@@ -32,31 +35,31 @@ public abstract class AbstractServer implements IServer {
 	protected void setBasicInfos(String serverName, int defaultPort, Router router) {
 		// set server basic info
 		this.serverName = serverName;
-		this.port = ApplicationProperties.getInt(this.serverName + ".bind.port", defaultPort);
-		this.charsetStr = ApplicationProperties.get(this.serverName + ".http.encoding", "UTF-8");
-		this.charset = Charset.forName(this.charsetStr);
-		this.suppportKeepAlive = ApplicationProperties.getBoolean(this.serverName + ".http.keepAlive", false);
-		this.supportChunkAggregate = ApplicationProperties.getBoolean(this.serverName + ".http.chunkAggregate", false);
-		this.chunkAggregateMaxContentLength = ApplicationProperties.getInt(this.serverName + ".http.chunkAggregate.maxContentLength", 65535);
-		this.supportContentCompress = ApplicationProperties.getBoolean(this.serverName + ".http.contentCompress", false);
-		logger.info("Create {} ...", this.serverName);
-		logger.info("{}-port is {}", this.serverName, this.port);
-		logger.info("{}-charset is {}", this.serverName, this.charsetStr);
-		logger.info("{}-suppportKeepAlive is {}", this.serverName, this.suppportKeepAlive);
-		logger.info("{}-supportChunkAggregate is {}", this.serverName, this.supportChunkAggregate);
+		port = ApplicationProperties.getInt(serverName + ".bind.port", defaultPort);
+		charsetStr = ApplicationProperties.get(serverName + ".http.encoding", "UTF-8");
+		charset = Charset.forName(charsetStr);
+		suppportKeepAlive = ApplicationProperties.getBoolean(serverName + ".http.keepAlive", false);
+		supportChunkAggregate = ApplicationProperties.getBoolean(serverName + ".http.chunkAggregate", false);
+		chunkAggregateMaxContentLength = ApplicationProperties.getInt(serverName + ".http.chunkAggregate.maxContentLength", DEFAULT_MAX_CONTENT_LENGTH);
+		supportContentCompress = ApplicationProperties.getBoolean(serverName + ".http.contentCompress", false);
+		logger.info("Create {} ...", serverName);
+		logger.info("{}-port is {}", serverName, port);
+		logger.info("{}-charset is {}", serverName, charsetStr);
+		logger.info("{}-suppportKeepAlive is {}", serverName, suppportKeepAlive);
+		logger.info("{}-supportChunkAggregate is {}", serverName, supportChunkAggregate);
 		if (this.supportChunkAggregate) {
-			logger.info("{}-chunkAggregateMaxContentLength is {}", this.serverName, this.chunkAggregateMaxContentLength);
+			logger.info("{}-chunkAggregateMaxContentLength is {}", serverName, chunkAggregateMaxContentLength);
 		}
-		logger.info("{}-supportContentCompress is {}", this.serverName, this.supportContentCompress);
+		logger.info("{}-supportContentCompress is {}", serverName, supportContentCompress);
 		
 		// compile server router
 		this.router = router;
-		logger.info("{} routes as follows.", this.serverName);
+		logger.info("{} routes as follows.", serverName);
 		this.router.compileRoutes();
 	}
 	
 	protected void setNettyOptions() {
-		String prefix = getServerName() + ".netty.options";
+		String prefix = serverName + ".netty.options";
 		List<String> keys = ApplicationProperties.getKeys(prefix);
 		for (String key: keys) {
 			String prefixWithDot = prefix + ".";
@@ -64,25 +67,26 @@ public abstract class AbstractServer implements IServer {
 				String optionKey = StringUtils.removeStart(key, prefixWithDot);
 				String optionVal = ApplicationProperties.get(key);
 				if (optionVal != null) {
-					getServerBootstrap().setOption(optionKey, optionVal);
+					serverBootstrap.setOption(optionKey, optionVal);
 				}
 			}
 		}
 	}
 	
 	public void start() {
-		getServerBootstrap().bind(new InetSocketAddress(getPort()));
-		logger.info("{} has started in {} mode. Port is {}", getServerName(), ApplicationProperties.getEnvironment(), getPort());
+		serverBootstrap.bind(new InetSocketAddress(getPort()));
+		logger.info("{} has started in {} mode. Port is {}", serverName, ApplicationProperties.getEnvironment(), port);
 		
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				logger.info("Starting shutdown...");
+				logger.info("Starting shutdown {} ...", serverName);
 				try {
-					getServerBootstrap().shutdown();
-					logger.info("Shutdown successfully.");
+					serverBootstrap.shutdown();
+					logger.info("Shutdown {} successfully.", serverName);
 				} catch (Exception e) {
-					logger.error("Shutdown unsafed.", e);
+					logger.error("Shutdown {} unsafed.", serverName);
+					logger.error("Stacktrace is {}", Utils.stackTraceToStr(e));
 				}
 			}
 		});

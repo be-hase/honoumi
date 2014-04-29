@@ -34,7 +34,7 @@ public class MonitoringHandler extends SimpleChannelUpstreamHandler {
 				logger.debug("server is NOT monitoring.");
 			}
 		} catch (Exception e) {
-			logger.error(Utils.stackTraceToStr(e));
+			logger.debug(Utils.stackTraceToStr(e));
 		}
 		
 		ctx.sendUpstream(evt);

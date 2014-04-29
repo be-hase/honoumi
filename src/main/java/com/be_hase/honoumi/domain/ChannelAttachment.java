@@ -24,6 +24,7 @@ public class ChannelAttachment extends BaseDomain {
 		ChannelAttachment channelAttachment = (ChannelAttachment)channel.getAttachment();
 		if (channelAttachment == null) {
 			channelAttachment = new ChannelAttachment();
+			channel.setAttachment(channelAttachment);
 		}
 		return channelAttachment;
 	}
