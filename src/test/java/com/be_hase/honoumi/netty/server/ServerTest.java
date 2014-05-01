@@ -32,9 +32,12 @@ public class ServerTest extends TestCase {
 		Server testServer = Server.create("testServer", router, modules);
 		testServer.start();
 		
+		MonitoringServer monitoringServer = MonitoringServer.create(testServer);
+		monitoringServer.start();
+		
 		assertEquals("testServer", testServer.getServerName());
 		assertEquals(22222, testServer.getPort());
-		assertEquals("UTF-16", testServer.getCharsetStr());
+		assertEquals("UTF-8", testServer.getCharsetStr());
 		assertEquals("true", testServer.getServerBootstrap().getOption("reuseAddress").toString());
 		assertEquals("true", testServer.getServerBootstrap().getOption("child.keepAlive").toString());
 		assertEquals("true", testServer.getServerBootstrap().getOption("child.tcpNoDelay").toString());

@@ -52,7 +52,15 @@ public class JacksonUtils {
 		return objectMapper.createObjectNode();
 	}
 	
+	public static ObjectNode createObjectNode(Object object) {
+		return objectMapper.convertValue(object, ObjectNode.class);
+	}
+	
 	public static ArrayNode createArrayNode() {
 		return objectMapper.createArrayNode();
+	}
+	
+	public static ArrayNode createArrayNode(Object object) {
+		return objectMapper.convertValue(object, ArrayNode.class);
 	}
 }

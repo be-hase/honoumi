@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.be-hase</groupId>
 	<artifactId>honoumi</artifactId>
-	<version>0.0.3</version>
+	<version>0.1.0</version>
 	<name>honoumi</name>
 	<description>RESTful HTTP server by Netty</description>
 	
@@ -135,6 +135,12 @@
 			<artifactId>httpclient</artifactId>
 			<version>4.2.3</version>
 		</dependency>
-	</dependencies>
 		
+		<!-- esper for monitoring -->
+		<dependency>
+			<groupId>com.espertech</groupId>
+			<artifactId>esper</artifactId>
+			<version>4.11.0</version>
+		</dependency>
+	</dependencies>
 </project>
