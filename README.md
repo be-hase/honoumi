@@ -4,7 +4,7 @@ Honoumi is a High-performance RESTful Micro-framework (for JSON).
 ## Feature
 
 * Network / Socket
-	* Netty. So support async response.
+	* Netty. (support async response)
 * Dependency injection
 	* Google Guice
 * Logging
@@ -15,6 +15,8 @@ Honoumi is a High-performance RESTful Micro-framework (for JSON).
 	* Guava
 	* joda-time
 	* apache commons
+* Monitoring
+	* Esper (Can write query by runtime)
 
 ## Install
 
