@@ -3,7 +3,6 @@ package com.be_hase.honoumi.listener;
 import java.util.UUID;
 
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

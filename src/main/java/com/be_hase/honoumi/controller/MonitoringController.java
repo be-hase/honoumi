@@ -23,6 +23,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 
+//TODO: separate the Service class properly.
+
 public class MonitoringController {
 	//private static Logger logger = LoggerFactory.getLogger(MonitoringController.class);
 	
@@ -34,6 +36,11 @@ public class MonitoringController {
 	
 	private static final String STATUS_START = "start";
 	private static final String STATUS_STOP = "stop";
+	
+	private static final Map<String, String> RESPONSE_HEADERS = Maps.newHashMap();
+	static {
+		RESPONSE_HEADERS.put("Access-Control-Allow-Origin", "*");
+	}
 	
 	public void statusesAllServer(
 			MessageEvent evt
@@ -356,19 +363,18 @@ public class MonitoringController {
 	private void error(MessageEvent evt, String message) {
 		ObjectNode response = JacksonUtils.createObjectNode();
 		response.put("error", message);
-		Response.execute(evt, HttpResponseStatus.BAD_REQUEST, null, JacksonUtils.toJsonString(response));
+		Response.execute(evt, HttpResponseStatus.BAD_REQUEST, RESPONSE_HEADERS, JacksonUtils.toJsonString(response));
 	}
 	
 	private void success(MessageEvent evt, Object response) {
-		Response.execute(evt, HttpResponseStatus.OK, null, JacksonUtils.toJsonString(response));
+		Response.execute(evt, HttpResponseStatus.OK, RESPONSE_HEADERS, JacksonUtils.toJsonString(response));
 	}
 	
 	private void successOK(MessageEvent evt) {
 		ObjectNode response = JacksonUtils.createObjectNode();
 		response.put("result", "OK");
-		Response.execute(evt, HttpResponseStatus.OK, null, JacksonUtils.toJsonString(response));
+		Response.execute(evt, HttpResponseStatus.OK, RESPONSE_HEADERS, JacksonUtils.toJsonString(response));
 	}
-	
 	
 	private void responseStatusesAllServer(MessageEvent evt) {
 		List<Map<String, Object>> response = Lists.newArrayList();
