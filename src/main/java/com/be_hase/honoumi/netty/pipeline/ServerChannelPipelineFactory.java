@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.netty.handler.HttpKeepAliveHandler;
 import com.be_hase.honoumi.netty.handler.HttpRequestHandler;
+import com.be_hase.honoumi.netty.handler.InitHandler;
 import com.be_hase.honoumi.netty.handler.MonitoringHandler;
 import com.be_hase.honoumi.netty.server.Server;
 import com.google.inject.Inject;
@@ -26,6 +27,8 @@ public class ServerChannelPipelineFactory implements ChannelPipelineFactory {
 		logger.debug("called.");
 		
 		ChannelPipeline pipeline = Channels.pipeline();
+		
+		pipeline.addLast("initHandler", server.getInjector().getInstance(InitHandler.class));
 		
 		if (server.isSupportMonitoring()) {
 			pipeline.addLast("monitoringHandler", server.getInjector().getInstance(MonitoringHandler.class));

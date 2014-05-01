@@ -52,7 +52,7 @@ import com.google.inject.Inject;
 public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = LoggerFactory.getLogger(HttpRequestHandler.class);
 	
-	private final String X_HTTP_METHOD_OVERRIDE = "X-Http-Method-Override";
+	private static final String X_HTTP_METHOD_OVERRIDE = "X-Http-Method-Override";
 	
 	@Inject
 	private IServer server;
@@ -71,16 +71,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		try {
 			HttpRequest request = (HttpRequest)evt.getMessage();
 			String uri = request.getUri();
-			String headerHttpMethod = request.headers().get(X_HTTP_METHOD_OVERRIDE);
-			String httpMethod = request.getMethod().getName();
-			if (StringUtils.isNotBlank(headerHttpMethod) && "post".equalsIgnoreCase(httpMethod)) {
-				if ("put".equalsIgnoreCase(headerHttpMethod)) {
-					httpMethod = "PUT";
-				} else if ("delete".equalsIgnoreCase(headerHttpMethod)) {
-					httpMethod = "DELETE";
-				}
-			}
+			String httpMethod = getHttpMethod(request);
 			logger.debug("Request [{}] '{}'", httpMethod.toUpperCase(), uri);
+			
+			ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
+			channelAttachment.setUrlPath(request.getUri());
+			channelAttachment.setHttpMethod(HttpRequestHandler.getHttpMethod(request));
+			channelAttachment.setRequestHeaders(HttpRequestHandler.getRequestHeaders(request));
 
 			Route route = server.getRouter().getRouteFor(httpMethod, uri);
 			if (route == null) {
@@ -115,7 +112,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				}
 			}
 			
-			List<Object> args = parseInvokingMethodArguments(ctx, evt, request, httpMethod, clazz, method, route.getPathParametersDecoded(uri));
+			List<Object> args = parseInvokingMethodArguments(ctx, evt, request, clazz, method, route.getPathParametersDecoded(uri));
 
 			logger.debug("Invoke controller method : {}.{}", clazz.getSimpleName(), method.getName());
 			
@@ -162,7 +159,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	private List<Object> parseInvokingMethodArguments(ChannelHandlerContext ctx, MessageEvent evt, HttpRequest request,
-			String httpMethod, Class<?> clazz, Method method, Map<String, String> pathParams) throws ArgumentResolveException {
+			Class<?> clazz, Method method, Map<String, String> pathParams) throws ArgumentResolveException {
 		List<Object> args = Lists.newArrayList();
 		List<Object> annotationArgs = Lists.newArrayList();
 
@@ -173,12 +170,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		String bodyStr = content.toString(server.getCharset());
 		logger.debug("body : {}", bodyStr);
 
-		final Map<String, String> headers = Maps.newHashMap();
-		final HttpHeaders httpHeaders = request.headers();
-		for (String headerName : httpHeaders.names()) {
-			headers.put(headerName, httpHeaders.get(headerName));
-		}
-
+		final Map<String, String> headers = getRequestHeaders(request);
 		logger.debug("headers : {}", headers);
 
 		Map<String, String> queryParams = Maps.newHashMap();
@@ -315,10 +307,6 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		if (channelAttachment.isNowMonitoring()) {
 			logger.debug("server is monitoring.");
 			
-			channelAttachment.setUrlPath(request.getUri());
-			channelAttachment.setHttpMethod(httpMethod);
-			channelAttachment.setRequestHeaders(headers);
-			
 			String eventTypeName = clazz.getSimpleName() + "_" + method.getName();
 			channelAttachment.setEventTypeName(eventTypeName);
 			Map<String, Object> event = channelAttachment.getEvent();
@@ -334,6 +322,29 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		}
 		
 		return args;
+	}
+	
+	public static String getHttpMethod(HttpRequest request) {
+		String headerHttpMethod = request.headers().get(X_HTTP_METHOD_OVERRIDE);
+		String httpMethod = request.getMethod().getName();
+		if (StringUtils.isNotBlank(headerHttpMethod) && "post".equalsIgnoreCase(httpMethod)) {
+			if ("put".equalsIgnoreCase(headerHttpMethod)) {
+				httpMethod = "PUT";
+			} else if ("delete".equalsIgnoreCase(headerHttpMethod)) {
+				httpMethod = "DELETE";
+			}
+		}
+		
+		return StringUtils.upperCase(httpMethod);
+	}
+	
+	public static Map<String, String> getRequestHeaders(HttpRequest request) {
+		final Map<String, String> headers = Maps.newHashMap();
+		final HttpHeaders httpHeaders = request.headers();
+		for (String headerName : httpHeaders.names()) {
+			headers.put(headerName, httpHeaders.get(headerName));
+		}
+		return headers;
 	}
 	
 	public static boolean isValidParameterAnnotation(Annotation annotation) {

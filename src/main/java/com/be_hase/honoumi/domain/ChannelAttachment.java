@@ -4,11 +4,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.be_hase.honoumi.netty.server.Server;
 
 
-public class ChannelAttachment extends BaseDomain {
+public class ChannelAttachment {
+	private static Logger logger = LoggerFactory.getLogger(ChannelAttachment.class);
+	
 	private boolean isKeepAliveSupported = false;
 	
 	private boolean isNowMonitoring = false;
@@ -23,6 +27,7 @@ public class ChannelAttachment extends BaseDomain {
 	public static ChannelAttachment getByChannel(Channel channel) {
 		ChannelAttachment channelAttachment = (ChannelAttachment)channel.getAttachment();
 		if (channelAttachment == null) {
+			logger.debug("channelAttachment is null");
 			channelAttachment = new ChannelAttachment();
 			channel.setAttachment(channelAttachment);
 		}

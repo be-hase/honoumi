@@ -22,8 +22,9 @@ public class MonitoringHandler extends SimpleChannelUpstreamHandler {
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
 		logger.debug("MonitoringHandler.messageReceived called.");
 		
-		Channel channel = evt.getChannel();
 		try {
+			Channel channel = evt.getChannel();
+			
 			if (server.isNowMonitoring()) {
 				logger.debug("server is monitoring.");
 				ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(channel);
