@@ -364,6 +364,20 @@ ex:
 
 ※ application.properties allows you to specify multiple comma-separated.
 
-### What 'Honoumi' means?
+## Monitoring
 
-From the name of the Characters of Love Live (Japanese anime).
+Honoumi incorporates a esper inside.  
+So, by registering a query freely, it is possible to do such monitoring what you want. (In real time)
+
+Please see also this page.  
+https://github.com/be-hase/honoumi-monitoring-admin
+
+## What 'Honoumi' means?
+
+This name is derived from the character of Honoka and Umi of Love Live(Japanese animation).
+
+
+## Want to know more information?
+
+I am currently creating a detailed document page.  
+I'm sorry, please wait a while longer.
