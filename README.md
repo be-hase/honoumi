@@ -18,16 +18,17 @@ Honoumi is a High-performance RESTful Micro-framework (for JSON).
 * Monitoring
 	* Esper (Can write query by runtime)
 
-## Install
+## How to use ??
+
+### 1. Install
 
 Write your pom.xml.
 
 ```xml
-
   <repositories>
     <repository>
       <id>honoumi-repo</id>
-      <url>https://raw.githubusercontent.com/be-hase/maven-repo/honoumi-0.0.3</url>
+      <url>https://raw.githubusercontent.com/be-hase/maven-repo/honoumi-0.1.1</url>
     </repository>
   </repositories>
 
@@ -35,10 +36,24 @@ Write your pom.xml.
     <dependency>
       <groupId>com.be-hase</groupId>
       <artifactId>honoumi</artifactId>
-      <version>0.0.3</version>
+      <version>0.1.1</version>
     </dependency>
   </dependencies>
+```
 
+### 2. Write in main(end-point) method.
+
+```java
+public static void main(String[] args) {
+	Router router = new Router();
+	// setting your router
+	Router router = new Router();
+	router.GET().route("/blog/{id}").with(Controller.class, "show");
+
+	// create server and start !
+	Server server = Server.create("main", router);
+	server.start();
+}
 ```
 
 ## Basic Usage
