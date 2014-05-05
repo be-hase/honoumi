@@ -152,6 +152,7 @@ public class MonitoringController {
 		List<Server> servers = monitoringServer.getMonitoredServersList();
 		for (Server server: servers) {
 			server.getEpService().getEPAdministrator().destroyAllStatements();
+			server.getMonitoringResultSet().clearAll();
 		}
 		
 		successOK(evt);
@@ -215,6 +216,7 @@ public class MonitoringController {
 		}
 		
 		server.getEpService().getEPAdministrator().destroyAllStatements();
+		server.getMonitoringResultSet().clearAll();
 		
 		successOK(evt);
 	}
@@ -356,6 +358,7 @@ public class MonitoringController {
 		}
 		
 		epStatement.destroy();
+		server.getMonitoringResultSet().clear(queryName);
 		
 		successOK(evt);
 	}

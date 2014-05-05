@@ -126,22 +126,30 @@ public class MonitoringServer extends AbstractServer {
 		Router router = new Router();
 		router.GET().route("/monitor/statuses").with(MonitoringController.class, "statusesAllServer");
 		router.PUT().route("/monitor/statuses").with(MonitoringController.class, "editStatusesAllServer");
+		router.POST().route("/monitor/statuses/edit").with(MonitoringController.class, "editStatusesAllServer");
 		
 		router.GET().route("/monitor/{serverName}/status").with(MonitoringController.class, "status");
 		router.PUT().route("/monitor/{serverName}/status").with(MonitoringController.class, "editStatus");
+		router.POST().route("/monitor/{serverName}/status/edit").with(MonitoringController.class, "editStatus");
 		
 		router.GET().route("/monitor/queries").with(MonitoringController.class, "queriesAllServer");
-		router.PUT().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
+		router.PUT().route("/monitor/queries").with(MonitoringController.class, "editQueriesAllServer");
+		router.POST().route("/monitor/queries/edit").with(MonitoringController.class, "editQueriesAllServer");
 		router.DELETE().route("/monitor/queries").with(MonitoringController.class, "deleteQueriesAllServer");
+		router.POST().route("/monitor/queries/delete").with(MonitoringController.class, "deleteQueriesAllServer");
 		
 		router.GET().route("/monitor/{serverName}/queries").with(MonitoringController.class, "queries");
 		router.PUT().route("/monitor/{serverName}/queries").with(MonitoringController.class, "editQueries");
+		router.POST().route("/monitor/{serverName}/queries/edit").with(MonitoringController.class, "editQueries");
 		router.DELETE().route("/monitor/{serverName}/queries").with(MonitoringController.class, "deleteQueries");
+		router.POST().route("/monitor/{serverName}/queries/delete").with(MonitoringController.class, "deleteQueries");
 		
 		router.GET().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "query");
 		router.POST().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "addQuery");
 		router.PUT().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "editQuery");
+		router.POST().route("/monitor/{serverName}/query/{queryName}/edit").with(MonitoringController.class, "editQuery");
 		router.DELETE().route("/monitor/{serverName}/query/{queryName}").with(MonitoringController.class, "deleteQuery");
+		router.POST().route("/monitor/{serverName}/query/{queryName}/delete").with(MonitoringController.class, "deleteQuery");
 		
 		return router;
 	}
