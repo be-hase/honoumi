@@ -18,6 +18,8 @@ Honoumi is a High-performance RESTful Micro-framework (for JSON).
 * Monitoring
 	* Esper (Can write query by runtime)
 
+Caution: multipart/form-data is not yet supported.
+
 ## How to use ??
 
 ### 1. Install
