@@ -162,7 +162,7 @@ public class MonitoringServer extends AbstractServer {
 			EPServiceProvider epService = EPServiceProviderManager.getDefaultProvider();
 			
 			server.setSupportMonitoring(true);
-			server.setNowMonitoring(true);
+			server.setNowMonitoring(ApplicationProperties.getBoolean(server.getServerName() + ".monitoring.autoStart", false));
 			server.setMonitoringResult(new MonitoringResultSet());
 			server.setEpService(epService);
 			
