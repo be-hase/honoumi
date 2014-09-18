@@ -30,7 +30,7 @@ Write your pom.xml.
   <repositories>
     <repository>
       <id>honoumi-repo</id>
-      <url>https://raw.githubusercontent.com/be-hase/maven-repo/honoumi-0.1.1</url>
+      <url>https://raw.githubusercontent.com/be-hase/maven-repo/honoumi-0.1.3</url>
     </repository>
   </repositories>
 
@@ -38,7 +38,7 @@ Write your pom.xml.
     <dependency>
       <groupId>com.be-hase</groupId>
       <artifactId>honoumi</artifactId>
-      <version>0.1.1</version>
+      <version>0.1.3</version>
     </dependency>
   </dependencies>
 ```
