@@ -135,20 +135,17 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		logger.error(Utils.stackTraceToStr(e.getCause()));
-		
-		logger.error("[channel error] exception={}", e);
-		
 		Channel channel = ctx.getChannel();
-		logger.error(
-			"[channel error] channelIsOpen={}, channelIsBound={}, channelIsWriteable={}, channelIsReadable={}, channelIsConnected={}",
-			channel.isOpen() ? "true" : "false",
-			channel.isBound() ? "true" : "false",
-			channel.isWritable() ? "true" : "false",
-			channel.isReadable() ? "true" : "false",
-			channel.isConnected() ? "true" : "false"
-		);
 		
+		logger.error(
+			"[channel exception] {} \n" +
+			"[channel status] channelIsOpen={}, channelIsBound={}, channelIsWriteable={}, channelIsReadable={}, channelIsConnected={} \n" +
+			"[stacktrace] {}",
+			e,
+			channel.isOpen(), channel.isBound(), channel.isWritable(), channel.isReadable(), channel.isConnected(),
+			Utils.stackTraceToStr(e.getCause())
+		);
+
 		if (ctx.getChannel().isOpen()) {
 			ctx.getChannel().close();
 		}

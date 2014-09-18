@@ -75,8 +75,7 @@ public class ApplicationProperties {
 		try {
 			propertiesConfiguration.load(fileOrUrlOrClasspathUrl);
 		} catch (ConfigurationException e) {
-			logger.info("Could not load file " + fileOrUrlOrClasspathUrl
-					+ " (not a bad thing necessarily, but I am returing null)");
+			logger.info("Could not load file {} (not a bad thing necessarily, but I am returing null)", fileOrUrlOrClasspathUrl);
 			return null;
 		}
 
