@@ -3,16 +3,12 @@ package com.be_hase.honoumi.controller;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.codec.http.Cookie;
-import org.jboss.netty.handler.codec.http.CookieDecoder;
-import org.jboss.netty.handler.codec.http.CookieEncoder;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -59,20 +55,6 @@ public class Response {
 			}
 		}
 		
-		// Encode the cookie.
-		String cookieString = request.headers().get(HttpHeaders.Names.COOKIE);
-		if (cookieString != null) {
-			CookieDecoder cookieDecoder = new CookieDecoder();
-			Set<Cookie> cookies = cookieDecoder.decode(cookieString);
-			if (!cookies.isEmpty()) {
-				CookieEncoder cookieEncoder = new CookieEncoder(true);
-				for (Cookie cookie : cookies) {
-					cookieEncoder.addCookie(cookie);
-					res.headers().add(HttpHeaders.Names.SET_COOKIE, cookieEncoder.encode());
-				}
-			}
-		}
-
 		ChannelFuture future = evt.getChannel().write(res);
 		if (!isKeepAlive) {
 			future.addListener(ChannelFutureListener.CLOSE);
