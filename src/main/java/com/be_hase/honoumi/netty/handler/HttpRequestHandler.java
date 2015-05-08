@@ -40,6 +40,7 @@ import com.be_hase.honoumi.controller.filter.Filter;
 import com.be_hase.honoumi.controller.filter.WithFilter;
 import com.be_hase.honoumi.domain.ChannelAttachment;
 import com.be_hase.honoumi.domain.ResponseError;
+import com.be_hase.honoumi.exception.AbstractErrorResponseException;
 import com.be_hase.honoumi.exception.ArgumentResolveException;
 import com.be_hase.honoumi.netty.server.IServer;
 import com.be_hase.honoumi.routing.Route;
@@ -51,29 +52,29 @@ import com.google.inject.Inject;
 
 public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = LoggerFactory.getLogger(HttpRequestHandler.class);
-	
+
 	private static final String X_HTTP_METHOD_OVERRIDE = "X-Http-Method-Override";
-	
+
 	@Inject
 	private IServer server;
-	
+
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent evt) {
 		logger.debug("HttpRequestHandler.messageReceived called.");
-		
+
 		if (!(evt.getMessage() instanceof HttpRequest)) {
 			logger.debug("[n/a] received message is illegal.");
 			DefaultHttpResponse res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
 			ctx.getChannel().write(res).addListener(ChannelFutureListener.CLOSE);
 			return;
 		}
-		
+
 		try {
 			HttpRequest request = (HttpRequest)evt.getMessage();
 			String uri = request.getUri();
 			String httpMethod = getHttpMethod(request);
 			logger.debug("Request [{}] '{}'", httpMethod.toUpperCase(), uri);
-			
+
 			ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
 			channelAttachment.setUrlPath(request.getUri());
 			channelAttachment.setHttpMethod(HttpRequestHandler.getHttpMethod(request));
@@ -88,7 +89,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 			Class<?> clazz = route.getControllerClass();
 			Method method = route.getControllerMethod();
-			
+
 			List<Class<? extends Filter>> filterClasses = Lists.newArrayList();
 			WithFilter classWithFilter = clazz.getAnnotation(WithFilter.class);
 			if (classWithFilter != null) {
@@ -98,27 +99,27 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			if (methodWithFilter != null) {
 				filterClasses.addAll(Arrays.asList(methodWithFilter.value()));
 			}
-			
+
 			logger.debug("Registed filters : {}", filterClasses);
-			for (Class<? extends Filter> filterClass: filterClasses) {
+			for (Class<? extends Filter> filterClass : filterClasses) {
 				Filter filter = server.getInjector().getInstance(filterClass);
-				
+
 				logger.debug("Invoke filter : {}", filterClass.getSimpleName());
 				boolean filterResult = filter.filter(ctx, evt);
-				
+
 				if (!filterResult) {
-					logger.debug("{} return false.", filterClass.getSimpleName());
-					return;
+					break;
 				}
 			}
-			
+
 			List<Object> args = parseInvokingMethodArguments(ctx, evt, request, clazz, method, route.getPathParametersDecoded(uri));
 
 			logger.debug("Invoke controller method : {}.{}", clazz.getSimpleName(), method.getName());
-			
+
 			method.invoke(server.getInjector().getInstance(clazz), args.toArray());
-		} catch (ArgumentResolveException e) {
-			logger.debug("[Argument resolve error] : {}", e.getResponse());
+		} catch (AbstractErrorResponseException e) {
+			logger.debug("[AbstractErrorResponseException] : {}", e.getResponse(), e);
+
 			String response;
 			if (e.getResponse() instanceof String) {
 				response = (String)e.getResponse();
@@ -136,15 +137,17 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 		Channel channel = ctx.getChannel();
-		
+
 		logger.error(
-			"[channel exception] {} \n" +
-			"[channel status] channelIsOpen={}, channelIsBound={}, channelIsWriteable={}, channelIsReadable={}, channelIsConnected={} \n" +
-			"[stacktrace] {}",
+			"[channel exception] {} \n"
+				+
+				"[channel status] channelIsOpen={}, channelIsBound={}, channelIsWriteable={}, channelIsReadable={}, channelIsConnected={} \n"
+				+
+				"[stacktrace] {}",
 			e,
 			channel.isOpen(), channel.isBound(), channel.isWritable(), channel.isReadable(), channel.isConnected(),
 			Utils.stackTraceToStr(e.getCause())
-		);
+			);
 
 		if (ctx.getChannel().isOpen()) {
 			ctx.getChannel().close();
@@ -162,7 +165,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 		final Class<?>[] paramTypes = method.getParameterTypes();
 		final Annotation[][] paramAnnotations = method.getParameterAnnotations();
-		
+
 		ChannelBuffer content = request.getContent();
 		String bodyStr = content.toString(server.getCharset());
 		logger.debug("body : {}", bodyStr);
@@ -210,11 +213,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 						continue;
 					}
 				}
-				
+
 				if (annotation == null) {
 					throw new IllegalArgumentException("There is no valid annotation on controller method.");
 				}
-				
+
 				if (annotation instanceof Body) {
 					if (!type.isAssignableFrom(String.class)) {
 						throw new IllegalArgumentException("@Body support String.");
@@ -287,10 +290,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					if (withAnno == null) {
 						continue;
 					}
-					
-					ArgumentResolver<?> resolver = (ArgumentResolver<?>) server.getInjector().getInstance(withAnno.value());
+
+					ArgumentResolver<?> resolver = (ArgumentResolver<?>)server.getInjector().getInstance(withAnno.value());
 					if (!resolver.supportedType(type)) {
-						throw new IllegalArgumentException("@" + annotation.annotationType().getSimpleName() + " does not support " + type.getSimpleName() + ".");
+						throw new IllegalArgumentException("@" + annotation.annotationType().getSimpleName()
+							+ " does not support " + type.getSimpleName() + ".");
 					}
 					Object arg = resolver.resolveArgument(ctx, evt);
 					args.add(arg);
@@ -298,29 +302,29 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				}
 			}
 		}
-		
+
 		//monitoring
 		ChannelAttachment channelAttachment = ChannelAttachment.getByChannel(evt.getChannel());
 		if (channelAttachment.isNowMonitoring()) {
 			logger.debug("server is monitoring.");
-			
+
 			String eventTypeName = clazz.getSimpleName() + "_" + method.getName();
 			channelAttachment.setEventTypeName(eventTypeName);
 			Map<String, Object> event = channelAttachment.getEvent();
 			int index = 0;
-			for (Object arg: annotationArgs) {
+			for (Object arg : annotationArgs) {
 				event.put("annotationArg" + index, arg);
 				index++;
 			}
-			
+
 			logger.debug("store event to channelAttachment. eventTypeName : {}, event : {}", eventTypeName, event);
 		} else {
 			logger.debug("server is NOT monitoring.");
 		}
-		
+
 		return args;
 	}
-	
+
 	public static String getHttpMethod(HttpRequest request) {
 		String headerHttpMethod = request.headers().get(X_HTTP_METHOD_OVERRIDE);
 		String httpMethod = request.getMethod().getName();
@@ -331,10 +335,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				httpMethod = "DELETE";
 			}
 		}
-		
+
 		return StringUtils.upperCase(httpMethod);
 	}
-	
+
 	public static Map<String, String> getRequestHeaders(HttpRequest request) {
 		final Map<String, String> headers = Maps.newHashMap();
 		final HttpHeaders httpHeaders = request.headers();
@@ -343,18 +347,38 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		}
 		return headers;
 	}
-	
+
 	public static boolean isValidParameterAnnotation(Annotation annotation) {
-		if (annotation instanceof Body) return true;
-		if (annotation instanceof FormParam) return true;
-		if (annotation instanceof FormParams) return true;
-		if (annotation instanceof Header) return true;
-		if (annotation instanceof Headers) return true;
-		if (annotation instanceof PathParam) return true;
-		if (annotation instanceof PathParams) return true;
-		if (annotation instanceof QueryParam) return true;
-		if (annotation instanceof QueryParams) return true;
-		if (annotation.annotationType().getAnnotation(WithArgumentResolver.class) != null) return true;
+		if (annotation instanceof Body) {
+			return true;
+		}
+		if (annotation instanceof FormParam) {
+			return true;
+		}
+		if (annotation instanceof FormParams) {
+			return true;
+		}
+		if (annotation instanceof Header) {
+			return true;
+		}
+		if (annotation instanceof Headers) {
+			return true;
+		}
+		if (annotation instanceof PathParam) {
+			return true;
+		}
+		if (annotation instanceof PathParams) {
+			return true;
+		}
+		if (annotation instanceof QueryParam) {
+			return true;
+		}
+		if (annotation instanceof QueryParams) {
+			return true;
+		}
+		if (annotation.annotationType().getAnnotation(WithArgumentResolver.class) != null) {
+			return true;
+		}
 		return false;
 	}
 }
